@@ -32,8 +32,7 @@ class Button:
                 color2 = self.color1
         # Отрисовываем кнопку
         screen.fill(pygame.Color(color1[0], color1[1], color1[2]), pygame.Rect(self.pos_x, self.pos_y,
-                                                                               self.pos_x + self.size_x,
-                                                                               self.pos_y + self.size_y))
+                                                                               self.size_x, self.size_y))
         # Пишем текст на кнопке
         font = pygame.font.Font(None, 30)
         text = font.render(self.text, True, color2)
