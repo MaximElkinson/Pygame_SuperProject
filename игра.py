@@ -45,15 +45,12 @@ class Button:
         # о положении и размере кнопки
         return (self.pos_x, self.pos_y, self.size_x, self.size_y)
 
-    def set_pos(self, x, y):
+    def set_pos(self, x, y, sx=None, sy=None):
         self.pos_x = x
         self.pos_y = y
-
-    def set_pos(self, x, y, sx, sy):
-        self.pos_x = x
-        self.pos_y = y
-        self.size_x = sx
-        self.size_y = sy
+        if sx is not None and sy is not None:
+            self.size_x = sx
+            self.size_y = sy
 
     def push(self):
         # Нажатие кнопки
@@ -63,7 +60,7 @@ class Button:
 if __name__ == '__main__':
     pygame.display.set_caption('Игра')
     size = width, height = 800, 400
-    screen = pygame.display.set_mode(size)
+    screen = pygame.display.set_mode(size, pygame.RESIZABLE)
 
     running = True
     # Инициализируем две кнопки
