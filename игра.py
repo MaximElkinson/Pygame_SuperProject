@@ -1,5 +1,8 @@
 import pygame
 
+pygame.init()
+main_font = pygame.font.Font("cool pixel font.ttf", 30)
+
 
 class Button:
     def __init__(self, pos_x, pos_y, size_x, size_y,
@@ -34,8 +37,7 @@ class Button:
         screen.fill(pygame.Color(color1), pygame.Rect(self.pos_x, self.pos_y,
                                                       self.size_x, self.size_y))
         # Пишем текст на кнопке
-        font = pygame.font.Font(None, 30)
-        text = font.render(self.text, True, color2)
+        text = main_font.render(self.text, True, color2)
         screen.blit(text, (self.pos_x, self.pos_y))
 
     def get_pos(self):
@@ -59,7 +61,6 @@ class Button:
 
 
 if __name__ == '__main__':
-    pygame.init()
     pygame.display.set_caption('Игра')
     size = width, height = 800, 400
     screen = pygame.display.set_mode(size)
