@@ -2,7 +2,8 @@ import pygame
 
 
 class Button:
-    def __init__(self, pos_x, pos_y, size_x, size_y, text, color1, color2):
+    def __init__(self, pos_x, pos_y, size_x, size_y,
+                 text="", color1=(0, 0, 0), color2=(255, 255, 255)):
         # По скольку в пайгейм нет готовых кнопок
         # то делаем их с помощю класса
         # Считываем данные:
@@ -26,22 +27,31 @@ class Button:
         color2 = self.color2
         # Если курсор на кнопке
         # то меняем её цвет
-        if self.pos_x <= mouse_pos[0] and self.pos_x + self.size_x >= mouse_pos[0]:
-            if self.pos_y <= mouse_pos[1] and self.pos_y + self.size_y >= mouse_pos[1]:
-                color1 = self.color2
-                color2 = self.color1
+        if self.pos_x <= mouse_pos[0] <= self.pos_x + self.size_x and \
+                self.pos_y <= mouse_pos[1] <= self.pos_y + self.size_y:
+            color1, color2 = color2, color1
         # Отрисовываем кнопку
-        screen.fill(pygame.Color(color1[0], color1[1], color1[2]), pygame.Rect(self.pos_x, self.pos_y,
-                                                                               self.size_x, self.size_y))
+        screen.fill(pygame.Color(color1), pygame.Rect(self.pos_x, self.pos_y,
+                                                      self.size_x, self.size_y))
         # Пишем текст на кнопке
         font = pygame.font.Font(None, 30)
         text = font.render(self.text, True, color2)
         screen.blit(text, (self.pos_x, self.pos_y))
 
-    def set_pos(self):
+    def get_pos(self):
         # Возвращаем все данные
         # о положении и размере кнопки
         return (self.pos_x, self.pos_y, self.size_x, self.size_y)
+
+    def set_pos(self, x, y):
+        self.pos_x = x
+        self.pos_y = y
+
+    def set_pos(self, x, y, sx, sy):
+        self.pos_x = x
+        self.pos_y = y
+        self.size_x = sx
+        self.size_y = sy
 
     def push(self):
         # Нажатие кнопки
@@ -56,9 +66,8 @@ if __name__ == '__main__':
 
     running = True
     # Инициализируем две кнопки
-    buttons = []
-    buttons.append(Button(10, 10, 100, 25, 'Играть', (0, 0, 0), (0, 255, 0)))
-    buttons.append(Button(10, 35, 100, 15, 'Выход', (0, 0, 0), (0, 255, 0)))
+    buttons = [Button(10, 10, 100, 25, 'Играть', (0, 0, 0), (0, 255, 0)),
+               Button(10, 35, 100, 25, 'Выход', (0, 0, 0), (0, 255, 0))]
     # Теоретическое положение курсора
     # по умолчанию
     mouse_pos = (0, 0)
