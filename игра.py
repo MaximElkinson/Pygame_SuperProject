@@ -1,7 +1,8 @@
 import pygame
 
-def print_0():
-    print(0)
+def exit():
+    global running
+    running = False
 
 
 class Button:
@@ -64,8 +65,8 @@ if __name__ == '__main__':
     running = True
     # Инициализируем две кнопки
     buttons = []
-    buttons.append(Button(10, 10, 100, 25, 'Играть', (0, 0, 0), (0, 255, 0), print_0))
-    buttons.append(Button(10, 35, 100, 15, 'Выход', (0, 0, 0), (0, 255, 0), print_0))
+    buttons.append(Button(10, 10, 100, 25, 'Играть', (0, 0, 0), (0, 255, 0), exit))
+    buttons.append(Button(10, 35, 100, 15, 'Выход', (0, 0, 0), (0, 255, 0), exit))
     # Теоретическое положение курсора
     # по умолчанию
     mouse_pos = (0, 0)
