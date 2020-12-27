@@ -1,5 +1,8 @@
 import pygame
 
+pygame.init()
+MAIN_FONT = pygame.font.Font("cool pixel font.ttf", 30)
+
 
 def exit():
     global running
@@ -33,18 +36,16 @@ class Button:
         color2 = self.color2
         # Если курсор на кнопке
         # то меняем её цвет
-        if self.pos_x < mouse_pos[0] and self.pos_x + self.size_x > mouse_pos[0]:
-            if self.pos_y < mouse_pos[1] and self.pos_y + self.size_y > mouse_pos[1]:
+        if self.pos_x <= mouse_pos[0] and self.pos_x + self.size_x > mouse_pos[0]:
+            if self.pos_y <= mouse_pos[1] and self.pos_y + self.size_y > mouse_pos[1]:
                 color1 = self.color2
                 color2 = self.color1
         # Отрисовываем кнопку
-        screen.fill(pygame.Color(color1[0], color1[1], color1[2]), pygame.Rect(self.pos_x, self.pos_y,
-                                                                               self.pos_x + self.size_x,
-                                                                               self.pos_y + self.size_y))
+        screen.fill(pygame.Color(color1[0], color1[1], color1[2]),
+                    pygame.Rect(self.pos_x, self.pos_y, self.size_x, self.size_y))
         # Пишем текст на кнопке
-        font = pygame.font.Font("cool pixel font.ttf", 30)
-        text = font.render(self.text, True, color2)
-        screen.blit(text, (self.pos_x, self.pos_y))
+        text = MAIN_FONT.render(self.text, True, color2)
+        screen.blit(text, (self.pos_x + 5, self.pos_y))
 
     def get_pos(self):
         # Возвращаем все данные
@@ -66,15 +67,14 @@ class Button:
 
 
 if __name__ == '__main__':
-    pygame.init()
     pygame.display.set_caption('Игра')
     size = width, height = 800, 400
     screen = pygame.display.set_mode(size)
 
     running = True
     # Инициализируем две кнопки
-    buttons = [Button(10, 10, 100, 25, 'Играть', (0, 0, 0), (0, 255, 0), exit),
-               Button(10, 35, 100, 15, 'Выход', (0, 0, 0), (0, 255, 0), exit)]
+    buttons = [Button(10, 10, 110, 30, 'Играть', (0, 0, 0), (0, 255, 0), exit),
+               Button(10, 40, 110, 30, 'Выход', (0, 0, 0), (0, 255, 0), exit)]
     # Теоретическое положение курсора
     # по умолчанию
     mouse_pos = (0, 0)
