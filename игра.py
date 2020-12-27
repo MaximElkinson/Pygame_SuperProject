@@ -2,8 +2,18 @@ import pygame
 
 
 def exit():
-    global running
-    running = False
+    pygame.quit()
+
+
+def start():
+    global screen
+    global buttons
+    del buttons[:]
+    a = Cut_Scean((0, 255, 0))
+    a.add_fraze('a')
+    a.add_fraze('b')
+    a.add_fraze('c')
+    a.start(screen)
 
 
 class Button:
@@ -65,6 +75,36 @@ class Button:
                 self.func()
 
 
+class Cut_Scean:
+    def __init__(self, color):
+        self.frazes = []
+        self.color = color
+
+    def add_fraze(self, text):
+        self.frazes.append(text)
+
+    def start(self, screen):
+        TIMEPRINT = pygame.USEREVENT + 1
+        pygame.time.set_timer(TIMEPRINT, 1000)
+        screen.fill(pygame.Color(0, 0, 0))
+        running = True
+        y = 0
+        s = 0
+        while running:
+            for event1 in pygame.event.get():
+                if event1.type == pygame.QUIT:
+                    running = False
+                if event1.type == TIMEPRINT:
+                    font = pygame.font.Font("cool pixel font.ttf", 30)
+                    text = font.render(self.frazes[s], True, self.color)
+                    screen.blit(text, (0, y))
+                    s += 1
+                    y += 30
+                    pygame.display.flip()
+                    if s == len(self.frazes):
+                        running = False
+
+
 if __name__ == '__main__':
     pygame.init()
     pygame.display.set_caption('Игра')
@@ -73,7 +113,7 @@ if __name__ == '__main__':
 
     running = True
     # Инициализируем две кнопки
-    buttons = [Button(10, 10, 100, 25, 'Играть', (0, 0, 0), (0, 255, 0), exit),
+    buttons = [Button(10, 10, 100, 25, 'Играть', (0, 0, 0), (0, 255, 0), start),
                Button(10, 35, 100, 15, 'Выход', (0, 0, 0), (0, 255, 0), exit)]
     # Теоретическое положение курсора
     # по умолчанию
