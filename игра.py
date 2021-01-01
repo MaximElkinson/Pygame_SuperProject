@@ -1,5 +1,8 @@
 import pygame
 
+pygame.init()
+MAIN_FONT = pygame.font.Font("cool pixel font.ttf", 30)
+
 
 def exit():
     pygame.quit()
@@ -43,8 +46,8 @@ class Button:
         color2 = self.color2
         # Если курсор на кнопке
         # то меняем её цвет
-        if self.pos_x < mouse_pos[0] and self.pos_x + self.size_x > mouse_pos[0]:
-            if self.pos_y < mouse_pos[1] and self.pos_y + self.size_y > mouse_pos[1]:
+        if self.pos_x <= mouse_pos[0] and self.pos_x + self.size_x > mouse_pos[0]:
+            if self.pos_y <= mouse_pos[1] and self.pos_y + self.size_y > mouse_pos[1]:
                 color1 = self.color2
                 color2 = self.color1
         # Отрисовываем кнопку
@@ -52,9 +55,8 @@ class Button:
                                                                                self.pos_x + self.size_x,
                                                                                self.pos_y + self.size_y))
         # Пишем текст на кнопке
-        font = pygame.font.Font("cool pixel font.ttf", 30)
-        text = font.render(self.text, True, color2)
-        screen.blit(text, (self.pos_x, self.pos_y))
+        text = MAIN_FONT.render(self.text, True, color2)
+        screen.blit(text, (self.pos_x + 5, self.pos_y))
 
     def get_pos(self):
         # Возвращаем все данные
