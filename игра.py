@@ -3,6 +3,7 @@ import pygame
 pygame.init()
 width, height = 800, 400
 MAIN_FONT = pygame.font.Font("cool pixel font.ttf", 30)
+SPEECH_SOUND = pygame.mixer.Sound("voice_sans.wav")
 DEFAULT_DESIGN = {  # Дизайн по умолчанию (ставятся именно эти параметры, если не указано иначе)
     "size": (50, 50),  # Размер
     "color": (0, 0, 0),  # Цвет области
@@ -115,7 +116,7 @@ class GameRect:
 
 
 class Speech(GameRect):  # Я не помню, как эта штука называется, но короче тут текст сидит
-    def __init__(self, y, *args, **kwargs):
+    def __init__(self, y, speech=SPEECH_SOUND, *args, **kwargs):
         if len(args) == 1 and type(args[0]) == RectDesign and len(kwargs) == 0:
             super().__init__(0, height - y, args[0])
         elif len(args) == 1 and type(args[0]) == RectDesign and len(kwargs) > 0:
@@ -125,6 +126,21 @@ class Speech(GameRect):  # Я не помню, как эта штука назы
         else:
             super().__init__(0, height - y)
         self.change_design(selectable=False, size=(width, y), dotext=True)
+        self.text = self.design["text"]
+        self.rate = 130
+        self.step = 0
+        self.speech = speech
+
+    def render(self, mpos):
+        self.change_design(text=self.text[:self.step // self.rate])
+        super().render(mpos)
+        if self.step % self.rate == 0 and self.text[self.step // self.rate - 1] not in " ,.":
+            self.speech.play()
+        self.step += len(self.text) * self.rate + 1 > self.step
+
+    def set_text(self, text):
+        self.text = text
+        self.step = 0
 
 
 class Button(GameRect):
@@ -149,7 +165,7 @@ if __name__ == '__main__':
     # Инициализируем две кнопки
     buttons = [Button(10, 10, 110, 30, 'Играть', (0, 0, 0), (0, 255, 0), exit),
                Button(10, 40, 110, 30, 'Выход', (0, 0, 0), (0, 255, 0), exit)]
-    dialogue = Speech(200, boundcolor=(0, 255, 0), textcolor=(0, 255, 0), reverse=True)
+    dialogue = Speech(200, text="It's me, SANS UNDERTALE", boundcolor=(0, 255, 0), textcolor=(0, 255, 0), reverse=True)
     # Теоретическое положение курсора
     # по умолчанию
     mouse_pos = (0, 0)
