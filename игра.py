@@ -13,9 +13,9 @@ def start():
     global buttons
     del buttons[:]
     a = Cut_Scean((0, 255, 0))
-    a.add_fraze('a')
-    a.add_fraze('b')
-    a.add_fraze('c')
+    a.add_fraze('adfs')
+    a.add_fraze('bsfd')
+    a.add_fraze('csdg')
     a.start(screen)
 
 
@@ -90,21 +90,29 @@ class Cut_Scean:
         pygame.time.set_timer(TIMEPRINT, 1000)
         screen.fill(pygame.Color(0, 0, 0))
         running = True
+        x = 0
         y = 0
         s = 0
+        l = 0
         while running:
             for event1 in pygame.event.get():
                 if event1.type == pygame.QUIT:
                     running = False
                 if event1.type == TIMEPRINT:
-                    font = pygame.font.Font("cool pixel font.ttf", 30)
-                    text = font.render(self.frazes[s], True, self.color)
-                    screen.blit(text, (0, y))
-                    s += 1
-                    y += 30
-                    pygame.display.flip()
-                    if s == len(self.frazes):
-                        running = False
+                    if s < len(self.frazes):
+                        font = pygame.font.Font("cool pixel font.ttf", 30)
+                        text = font.render(self.frazes[s][l], True, self.color)
+                        screen.blit(text, (x, y))
+                        l += 1
+                        x += 15
+                        pygame.display.flip()
+                        if l == len(self.frazes[s]):
+                            s += 1
+                            l = 0
+                            x = 0
+                            y += 30
+                if event1.type == pygame.MOUSEBUTTONUP:
+                    running = False
 
 
 if __name__ == '__main__':
