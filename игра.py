@@ -134,9 +134,9 @@ class Button(pygame.sprite.Sprite):
             self.func()
 
 
-class CutScene:
-    def __init__(self, color):
-        self.frazes = []
+class Cut_Scean:
+    def __init__(self, color, text=[]):
+        self.frazes = text
         self.color = color
 
     def add_fraze(self, text):
@@ -144,7 +144,7 @@ class CutScene:
 
     def start(self, screen):
         TIMEPRINT = pygame.USEREVENT + 1
-        pygame.time.set_timer(TIMEPRINT, 1000)
+        pygame.time.set_timer(TIMEPRINT, 300)
         screen.fill(pygame.Color(0, 0, 0))
         running = True
         x = 0
@@ -168,19 +168,239 @@ class CutScene:
                             l = 0
                             x = 0
                             y += 30
-                if event.type == pygame.MOUSEBUTTONUP:
+                    else:
+                        running = False
+                if event1.type == pygame.MOUSEBUTTONUP:
                     running = False
 
 
-if __name__ == '__main__':
+class Naperstki:
+    def restart(self):
+        self.boxes = []
+        self.map = [0 for i in range(5)]
+        col_vo = 2
+        while col_vo != 0:
+            index = random.choice(range(0, 4))
+            if self.map[index] == 0:
+                self.map[index] += col_vo
+                col_vo -= 1
+        for i in range(5):
+            x = 10 * (i + 1)
+            self.boxes.append(Button(x, 10, 110, 30, '', (0, 0, 0), (0, 255, 0), self.choise_boxes()))
 
+    def choise_boxes(self):
+        new_map = [0 for i in range(5)]
+        col_vo = 2
+        while col_vo != 0:
+            index = random.choice(range(0, 4))
+            if new_map[index] == 0 and self.map[index] == 0:
+                new_map[index] += col_vo
+                col_vo -= 1
+        return new_map
+
+    def add_eleps(self):
+        clock = pygame.time.Clock()
+        for j in range(1, 3):
+            running = True
+            eleps_x = 110 * (self.map.index(j) + 1) + 50
+            print(self.map.index(j))
+            eleps_y = 5
+            while running:
+                for event1 in pygame.event.get():
+                    if event1.type == pygame.QUIT:
+                        running = False
+                pygame.draw.circle(screen, (0, 0, 0), (eleps_x, eleps_y - 5), 20)
+                pygame.draw.circle(screen, (255, 0, 0), (eleps_x, eleps_y), 20)
+                for i in self.boxes:
+                    i.render((-1, -1))
+                if eleps_y < 150:
+                    eleps_y += 40 * clock.tick() / 1000
+                else:
+                    running = False
+                pygame.display.flip()
+
+
+    def render(self, new_map):
+        for i in range(1, 3):
+            running = True
+            clock = pygame.time.Clock()
+            box_a = self.map.index(i)
+            box_b = new_map.index(i)
+            pos_a = list(self.boxes[box_a].get_rect())
+            pos_b = list(self.boxes[box_b].get_rect())
+            finish = pos_b[0]
+            x = (pos_b[0] - pos_a[0]) / 20
+            while running:
+                screen.fill((0, 0, 0))
+                for event1 in pygame.event.get():
+                    if event1.type == pygame.QUIT:
+                        running = False
+                for f in self.boxes:
+                    f.render((-1, -1))
+                if pos_a[1] > 0:
+                    pos_a[1] -= 40 * clock.tick() / 1000
+                    pos_b[1] -= 40 * clock.tick() / 1000
+                    self.boxes[box_a].set_rect(*pos_a)
+                    self.boxes[box_b].set_rect(*pos_b)
+                else:
+                    if pos_a[0] < finish:
+                        pos_a[0] += x * clock.tick() / 500
+                        pos_b[0] -= x * clock.tick() / 500
+                        self.boxes[box_a].set_rect(*pos_a)
+                        self.boxes[box_b].set_rect(*pos_b)
+                    else:
+                        if pos_a[1] < 120:
+                            pos_a[1] += 40 * clock.tick() / 1000
+                            pos_b[1] += 40 * clock.tick() / 1000
+                            self.boxes[box_a].set_rect(*pos_a)
+                            self.boxes[box_b].set_rect(*pos_b)
+                        else:
+                            self.boxes[box_a], self.boxes[box_b] = self.boxes[box_b], self.boxes[box_a]
+                            running = False
+                pygame.display.flip()
+
+
+
+    def choise(self):
+        pass
+
+    def __init__(self):
+        global screen
+        screen.fill((0, 0, 0))
+        self.restart()
+        self.boxes = [Button(110 * (i + 1), 120, 110, 110, '', (0, 0, 0), (0, 255, 0), self.choise) for i in range(5)]
+        pygame.display.flip()
+        self.add_eleps()
+        print(4)
+        for i in range(5):
+            self.render(self.choise_boxes())
+
+
+class Reakcia:
+    # создание поля
+    def __init__(self):
+        self.width = 5
+        self.height = 5
+        self.cut_sceans = [Cut_Scean((0, 255, 0), ['В данном тесте',
+                                                   'мы проверим твою скорость обработки информации',
+                                                   'Ты должен найти ,среди массива данных, файл',
+                                                   'в котором есть слово "красный"',
+                                                   'Попробуй уложиться в две милисекунды']),
+                           Cut_Scean((0, 255, 0), ['Слишком медленно',
+                                                   'Посмотрим что не так и попробуем сново']),
+                           Cut_Scean((0, 255, 0), ['Ты ошибся',
+                                                   'Посмотрим что не так и попробуем сново']),
+                           Cut_Scean((0, 255, 0), ['Прекрасно',
+                                                   'Ты справился. Идём дальше'])]
+        # значения по умолчанию
+        self.left = 10
+        self.top = 10
+        self.cell_size = 50
+        res = 10
+        i = 10
+        self.cut_sceans[0].start(screen)
+        while res != 0 and i != 4:
+            for i in range(5):
+                self.generate_map()
+                res = self.level()
+                if res != 3:
+                    break
+            self.cut_sceans[res].start(screen)
+
+    def generate_map(self):
+        self.pos = [random.choice(range(self.width)),
+                    random.choice(range(self.height))]
+        self.board = [[0] * width for _ in range(height)]
+        for i in range(len(self.board)):
+            for j in range(len(self.board[i])):
+                if i != self.pos[1] or j != self.pos[0]:
+                    self.board[i][j] = (random.choice(range(155)),
+                                        random.choice(range(255)),
+                                        random.choice(range(255)))
+                else:
+                    self.board[i][j] = (255, 0, 0)
+
+    # настройка внешнего вида
+    def set_view(self, left, top, cell_size):
+        self.left = left
+        self.top = top
+        self.cell_size = cell_size
+
+    def render(self):
+        for y in range(self.height):
+            for x in range(self.width):
+                x1 = x * self.cell_size + self.left
+                y1 = y * self.cell_size + self.top
+                pygame.draw.rect(screen, pygame.Color(255, 255, 255),
+                                 (x1, y1, self.cell_size, self.cell_size), 1)
+
+        for y in range(self.height):
+            for x in range(self.width):
+                color = pygame.Color(*self.board[y][x])
+                x1 = x * self.cell_size + self.left
+                y1 = y * self.cell_size + self.top
+                l = (self.cell_size - 2) / 2
+                pygame.draw.rect(screen, color,
+                                 pygame.Rect(x1 + 1, y1 + 1, self.cell_size - 2, self.cell_size - 2))
+
+    def on_click(self, cell):
+        if cell[0] == self.pos[0] and cell[1] == self.pos[1]:
+            return True
+        else:
+            return False
+
+    def get_cell(self, mouse_pos):
+        x = (mouse_pos[0] - self.left) // self.cell_size
+        y = (mouse_pos[1] - self.top) // self.cell_size
+        if x < 0 or x >= self.width or y < 0 or y >= self.height:
+            return None
+        return x, y
+
+    def get_click(self, mouse_pos):
+        cell = self.get_cell(mouse_pos)
+        if cell:
+            return self.on_click(cell)
+
+    def level(self):
+        TIMER = pygame.USEREVENT + 1
+        pygame.time.set_timer(TIMER, 100)
+        time = 1.50
+        running = True
+        res = False
+        while running:
+            for event_r in pygame.event.get():
+                if event_r.type == pygame.QUIT:
+                    running = False
+                if event_r.type == pygame.MOUSEBUTTONUP:
+                    if self.get_click(event_r.pos):
+                        res = 3
+                        running = False
+                    else:
+                        res = 2
+                        running = False
+                if event_r.type == TIMER:
+                    if time > 0.1:
+                        time -= 0.1
+                    else:
+                        res = 1
+                        running = False
+            screen.fill((0, 0, 0))
+            self.render()
+            font = pygame.font.Font(None, 50)
+            text = font.render(str(time)[:3], True, (0, 255, 0))
+            screen.blit(text, (300, 100))
+            pygame.display.flip()
+        return res
+
+
+def menu():
+    global mouse_on_screen
     running = True
     # Инициализируем две кнопки
     buttons = pygame.sprite.Group()
     sprites = pygame.sprite.Group()
     Button(8, 8, btnimg.copy(), 'Играть', (0, 200, 0), exit, buttons, sprites)
     Button(8, 80, btnimg.copy(), 'Выход', (0, 200, 0), exit, buttons, sprites)
-    # dialogue = Speech("It's me, SANS UNDERTALE", sprites)
     # Теоретическое положение курсора
     # по умолчанию
     mouse_pos = (0, 0)
@@ -208,4 +428,13 @@ if __name__ == '__main__':
         sprites.draw(screen)
         pygame.display.flip()
         clock.tick(fps)
+
+
+if __name__ == '__main__':
+    pygame.init()
+    pygame.display.set_caption('Игра')
+    size = width, height
+    screen = pygame.display.set_mode(size)
+    mouse_on_screen = None
+    menu()
     pygame.quit()
