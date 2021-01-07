@@ -1,38 +1,50 @@
 import pygame
+import os
+import sys
+import random
 
 pygame.init()
-width, height = 800, 400
-MAIN_FONT = pygame.font.Font("cool pixel font.ttf", 30)
-SPEECH_SOUND = pygame.mixer.Sound("voice_sans.wav")
-DEFAULT_DESIGN = {  # Дизайн по умолчанию (ставятся именно эти параметры, если не указано иначе)
-    "size": (50, 50),  # Размер
-    "color": (0, 0, 0),  # Цвет области
-    "boundaries": True,  # Есть ли границы
-    "boundwidth": 2,  # Ширина границ (Общий размер остается неизменным)
-    "boundcolor": (255, 255, 255),  # Цвет границ
-    "dotext": False,  # Есть ли текст
-    "text": "Тестовый текст",  # Собсна сам текст
-    "textpos": (0, 0),  # Позиция текста ОТНОСИТЕЛЬНО ВНУТРЕННЕЙ ЧАСТИ ОБЪЕКТА
-    "font": MAIN_FONT,  # Шрифт текста
-    "boundtext": True,  # Равен ли цвет текста цвету границ  (если границы есть кншн)
-    "textcolor": (255, 255, 255),  # Цвет текста
-    "selectable": False,  # Меняется ли цвет объекта при наведении на него курсора
-    "reverse": True,  # Если объект выделен, меняются ли основной и дополнительные цвета
-    "color2": (255, 255, 255),  # Если reverse поставлен на False,
-    "boundcolor2": (0, 0, 0),  # нужно выбрать кастомный цвет
-    "textcolor2": (0, 0, 0)  # для каждой части
-}
+pygame.display.set_caption('Игра')
+size = width, height = 1600, 800
+screen = pygame.display.set_mode(size, pygame.FULLSCREEN)
+pixel_size = height // 100
+MAIN_FONT = pygame.font.Font("data/cool pixel font.ttf", 30)
+mouse = False
+mouseprev = False
+click = False
+
+
+def load_image(name, colorkey=None):
+    fullname = os.path.join('data', name)
+    if not os.path.isfile(fullname):
+        print(f"Файл с изображением '{fullname}' не найден")
+        sys.exit()
+    image = pygame.image.load(fullname)
+    if colorkey is not None:
+        image = image.convert()
+    if colorkey == -1:
+        colorkey = image.get_at((0, 0))
+        image.set_colorkey(colorkey)
+    else:
+        image = image.convert_alpha()
+    image = pygame.transform.scale(
+        image, (image.get_width() * pixel_size, image.get_height() * pixel_size))
+    return image
+
+
+btnimg = load_image("кнопка.png")
 
 
 def exit():
     pygame.quit()
+    sys.exit()
 
 
 def start():
     global screen
     global buttons
     del buttons[:]
-    a = Cut_Scean((0, 255, 0))
+    a = CutScene((0, 255, 0))
     a.add_fraze('adfs')
     a.add_fraze('bsfd')
     a.add_fraze('csdg')
@@ -45,128 +57,84 @@ def in_rect(rect, xy):
     return False
 
 
-class RectDesign:
-    # Класс, создающий кастомный дизайн
-    def __init__(self, **struct):
-        self.struct = DEFAULT_DESIGN
-        self.change(**struct)
-
-    def __getitem__(self, item):
-        return self.struct[item]
-
-    def change(self, **dstruct):
-        self.struct = self.get_changed(**dstruct)
-
-    def get_changed(self, **dstruct):
-        ans = self.struct.copy()
-        for i in dstruct.keys():
-            if i in self.struct and type(self.struct[i]) == type(dstruct[i]):
-                ans[i] = dstruct[i]
-        return ans
-
-
-class GameRect:
-    # Дабы не копировать строки по миллиону раз на каждый класс, существует вотетот надкласс
-    def __init__(self, x, y, design=None):
-        # Считываем данные:
-        if design is None:
-            design = DEFAULT_DESIGN
-        self.pos = (x, y)  # Позиция объекта
-        self.design = design  # Дизайн объекта. Вкратце - все параметры, кроме позиции
-
-    def change_design(self, **kwargs):  # Изменение дизайна объекта
-        self.design.change(**kwargs)
-
-    def get_rect(self):
-        # Возвращаем все данные о положении и размере объекта
-        return *self.pos, *self.design["size"]
-
-    def set_rect(self, x, y, sx=None, sy=None):
-        self.pos = (x, y)
-        if sx is not None and sy is not None:
-            self.change_design(size=(sx, sy))
-
-    def render(self, mpos):  # Рисовка объекта
-        x, y = self.pos  # Подготовка переменных координат и размеров для более гибкой работы
-        w = self.design["boundwidth"]
-        sx, sy = self.design["size"]
-
-        selected = False  # Подготовка и предварительное изменение цветов
-        color1 = self.design["color"]  # Основной цвет
-        color2 = self.design["boundcolor"]  # Цвет рамки
-        color3 = self.design["textcolor"]  # Цвет текста
-        # Изменение цветов в случае наведения курсора
-        if mouse_on_screen and self.design["selectable"] and \
-                in_rect((*self.pos, *self.design["size"]), mpos):
-            selected = True
-            if self.design["reverse"]:
-                color1, color3 = color2, color1
-            else:
-                color1 = self.design["color2"]
-                color2 = self.design["boundcolor2"]
-                color3 = self.design["textcolor2"]
-
-        if self.design["boundaries"]:  # Зарисовка основной формы и рамок
-            screen.fill(color2, (x, y, sx, sy))
-            x += w
-            y += w
-            sx -= 2 * w
-            sy -= 2 * w
-        screen.fill(color1, (x, y, sx, sy))
-
-        if self.design["dotext"]:  # Зарисовка текста
-            if self.design["boundtext"] and not selected:
-                color = color2
-            else:
-                color = color3
-            text = self.design["font"].render(self.design["text"], False, color)
-            x, y = self.design["textpos"]
-            screen.blit(text, (x + self.pos[0] + w * self.design["boundaries"],
-                               y + self.pos[1] + w * self.design["boundaries"]))
-
-
-class Speech(GameRect):  # Я не помню, как эта штука называется, но короче тут текст сидит
-    def __init__(self, y, speech=SPEECH_SOUND, *args, **kwargs):
-        if len(args) == 1 and type(args[0]) == RectDesign and len(kwargs) == 0:
-            super().__init__(0, height - y, args[0])
-        elif len(args) == 1 and type(args[0]) == RectDesign and len(kwargs) > 0:
-            super().__init__(0, height - y, args[0].get_changed(**kwargs))
-        elif len(kwargs) > 0:
-            super().__init__(0, height - y, RectDesign(**kwargs))
-        else:
-            super().__init__(0, height - y)
-        self.change_design(selectable=False, size=(width, y), dotext=True)
-        self.text = self.design["text"]
-        self.rate = 130
+class Speech(pygame.sprite.Sprite):  # Я не помню, как это называется, но короче тут текст сидит
+    def __init__(self, text, *group):
+        super().__init__(*group)
+        self.image = btnimg.copy()
+        self.rect = pygame.Rect(pixel_size, height * 5 / 8, width - pixel_size,
+                                height * 3 / 8 - pixel_size)
+        self.text = text
+        self.rate = 3
         self.step = 0
-        self.speech = speech
 
-    def render(self, mpos):
-        self.change_design(text=self.text[:self.step // self.rate])
-        super().render(mpos)
-        if self.step % self.rate == 0 and self.text[self.step // self.rate - 1] not in " ,.":
-            self.speech.play()
-        self.step += len(self.text) * self.rate + 1 > self.step
+    def update(self, mpos, click):
+        self.step += self.step < (len(self.text) - 1) * self.rate
+        bltext = MAIN_FONT.render(self.text[self.step // self.rate], False, (0, 200, 0))
+        self.image.blit(bltext, (pixel_size + MAIN_FONT.size(
+            self.text[:self.step // self.rate + 1])[0], pixel_size))
 
     def set_text(self, text):
+        self.image = btnimg.copy()
         self.text = text
         self.step = 0
 
 
-class Button(GameRect):
+class Tile(pygame.sprite.Sprite):
+    def __init__(self, rect, *groups, life=1):
+        super().__init__(*groups)
+        self.image = pygame.Surface(rect[2:])
+        self.rect = pygame.Rect(rect)
+        self.life = life
+        color = pygame.Color(0, 220, 0)
+        color.hsva = ((color.hsva[0] + random.randint(-20, 20)) % 360, color.hsva[1],
+                      random.randint(30, 70), color.hsva[3])
+        pygame.draw.rect(self.image, color, (0, 0, rect[2], rect[3]))
+
+    def collide(self):
+        self.life -= 1
+        if self.life == 0:
+            self.kill()
+
+
+class Ball(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__(sprites)
+        self.image = pygame.Surface(())
+
+
+class HackingGame:
+    def __init__(self, difficulty=1):
+        self.tiles = pygame.sprite.Group()
+        h = int(5 * 1.5 ** difficulty)
+        w = int(6 * 1.5 ** difficulty)
+        tsize = ((width - pixel_size * (w + 1)) // w, (height // 2 - pixel_size * (h + 1)) // h,
+                 (width - pixel_size * (w + 2)) // (w + 1))
+        for i in range(h):
+            for j in range(w + (i % 2)):
+                Tile((pixel_size + (tsize[2 * (i % 2)] + 8) * j, pixel_size + (tsize[1] + 8) * i,
+                      tsize[2 * (i % 2)], tsize[1]), self.tiles, sprites)
+
+
+class Button(pygame.sprite.Sprite):
     # Поскольку в Pygame нет готовых кнопок, делаем их с помощю класса
-    def __init__(self, x, y, sx, sy, text, color, bcolor, func):
-        super().__init__(x, y, RectDesign(size=(sx, sy), color=color, boundcolor=bcolor))
-        self.change_design(dotext=True, text=text, boundtext=True, selectable=True)
+    def __init__(self, x, y, sprite, text, tcolor, func, *group):
+        super().__init__(*group)
+        self.text = text
+        self.image = sprite
+        self.rect = pygame.Rect(x, y, *self.image.get_size())
+        self.image.blit(MAIN_FONT.render(self.text, False, tcolor),
+                        ((self.rect.w - MAIN_FONT.size(text)[0]) / 2,
+                         (self.rect.h - MAIN_FONT.get_height()) / 2))
         self.func = func
 
-    def push(self, mousepos):
+    def update(self, event, click):
         # Нажатие кнопки
-        if in_rect((*self.pos, *self.design["size"]), mousepos):
+        if event.type in [pygame.MOUSEMOTION, pygame.MOUSEBUTTONDOWN] and \
+                in_rect((self.rect.x, self.rect.y, *self.rect.size), event.pos) and click:
             self.func()
 
 
-class Cut_Scean:
+class CutScene:
     def __init__(self, color):
         self.frazes = []
         self.color = color
@@ -184,10 +152,10 @@ class Cut_Scean:
         s = 0
         l = 0
         while running:
-            for event1 in pygame.event.get():
-                if event1.type == pygame.QUIT:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
                     running = False
-                if event1.type == TIMEPRINT:
+                if event.type == TIMEPRINT:
                     if s < len(self.frazes):
                         font = pygame.font.Font("cool pixel font.ttf", 30)
                         text = font.render(self.frazes[s][l], True, self.color)
@@ -200,41 +168,44 @@ class Cut_Scean:
                             l = 0
                             x = 0
                             y += 30
-                if event1.type == pygame.MOUSEBUTTONUP:
+                if event.type == pygame.MOUSEBUTTONUP:
                     running = False
 
 
 if __name__ == '__main__':
-    pygame.init()
-    pygame.display.set_caption('Игра')
-    size = width, height
-    screen = pygame.display.set_mode(size)
 
     running = True
     # Инициализируем две кнопки
-    buttons = [Button(10, 10, 110, 30, 'Играть', (0, 0, 0), (0, 255, 0), exit),
-               Button(10, 40, 110, 30, 'Выход', (0, 0, 0), (0, 255, 0), exit)]
-    dialogue = Speech(200, text="It's me, SANS UNDERTALE", boundcolor=(0, 255, 0), textcolor=(0, 255, 0), reverse=True)
+    buttons = pygame.sprite.Group()
+    sprites = pygame.sprite.Group()
+    Button(8, 8, btnimg.copy(), 'Играть', (0, 200, 0), exit, buttons, sprites)
+    Button(8, 80, btnimg.copy(), 'Выход', (0, 200, 0), exit, buttons, sprites)
+    # dialogue = Speech("It's me, SANS UNDERTALE", sprites)
     # Теоретическое положение курсора
     # по умолчанию
     mouse_pos = (0, 0)
     mouse_on_screen = pygame.mouse.get_focused()
+    clock = pygame.time.Clock()
+    fps = 60
     while running:
+        mouseprev = mouse
         mouse_on_screen = pygame.mouse.get_focused()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.MOUSEMOTION:
-                if mouse_pos != event.pos:
-                    # Заносим положение курсора в переменную
-                    mouse_pos = event.pos
+                # Заносим положение курсора в переменную
+                mouse_pos = event.pos
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                mouse = True
             if event.type == pygame.MOUSEBUTTONUP:
-                for i in buttons:
-                    # Обновляем каждую кнопку
-                    i.push(mouse_pos)
-        for i in buttons:
-            # Обновляем каждую кнопку
-            i.render(mouse_pos)
-        dialogue.render(mouse_pos)
+                mouse = False
+        if not mouseprev and mouse:
+            click = True
+        else:
+            click = False
+        sprites.update(event, click)
+        sprites.draw(screen)
         pygame.display.flip()
+        clock.tick(fps)
     pygame.quit()
