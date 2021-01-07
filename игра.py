@@ -157,7 +157,7 @@ class Cut_Scean:
                     running = False
                 if event.type == TIMEPRINT:
                     if s < len(self.frazes):
-                        font = pygame.font.Font("cool pixel font.ttf", 30)
+                        font = MAIN_FONT
                         text = font.render(self.frazes[s][l], True, self.color)
                         screen.blit(text, (x, y))
                         l += 1
@@ -170,7 +170,7 @@ class Cut_Scean:
                             y += 30
                     else:
                         running = False
-                if event1.type == pygame.MOUSEBUTTONUP:
+                if event.type == pygame.MOUSEBUTTONUP:
                     running = False
 
 
@@ -394,12 +394,12 @@ class Reakcia:
 
 
 def menu():
-    global mouse_on_screen
+    global mouse_on_screen, mouse, mouseprev
     running = True
     # Инициализируем две кнопки
     buttons = pygame.sprite.Group()
     sprites = pygame.sprite.Group()
-    Button(8, 8, btnimg.copy(), 'Играть', (0, 200, 0), exit, buttons, sprites)
+    Button(8, 8, btnimg.copy(), 'Играть', (0, 200, 0), Reakcia, buttons, sprites)
     Button(8, 80, btnimg.copy(), 'Выход', (0, 200, 0), exit, buttons, sprites)
     # Теоретическое положение курсора
     # по умолчанию
@@ -431,10 +431,7 @@ def menu():
 
 
 if __name__ == '__main__':
-    pygame.init()
-    pygame.display.set_caption('Игра')
-    size = width, height
-    screen = pygame.display.set_mode(size)
+    # pygame.display.set_caption('Игра')
     mouse_on_screen = None
     menu()
     pygame.quit()
