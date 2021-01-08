@@ -2,6 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="e87dd9f1-3fb0-4b66-bc5a-af830d64e8e8" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/ПРОЕКТ2.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/ПРОЕКТ2.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/игра.py" beforeDir="false" afterPath="$PROJECT_DIR$/игра.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -11,6 +14,15 @@
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectId" id="1mml3fDQhQTWanwhWCubtqMsIVc" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
   <component name="RunManager">
     <configuration name="игра" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
@@ -40,7 +52,15 @@
       </list>
     </recent_temporary>
   </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="e87dd9f1-3fb0-4b66-bc5a-af830d64e8e8" name="Default Changelist" comment="" />
+      <created>1610106451561</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1610106451561</updated>
+    </task>
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -51,21 +71,25 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="414" y="174" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1610034649131" />
-    <state width="1899" height="282" key="GridCell.Tab.0.bottom" timestamp="1610035315268">
+    <state width="1899" height="282" key="GridCell.Tab.0.bottom" timestamp="1610109301809">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1899" height="282" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1610035315268" />
-    <state width="1899" height="282" key="GridCell.Tab.0.center" timestamp="1610035315268">
+    <state width="1899" height="282" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1610109301809" />
+    <state width="1899" height="282" key="GridCell.Tab.0.center" timestamp="1610109301808">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1899" height="282" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1610035315268" />
-    <state width="1899" height="282" key="GridCell.Tab.0.left" timestamp="1610035315268">
+    <state width="1899" height="282" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1610109301808" />
+    <state width="1899" height="282" key="GridCell.Tab.0.left" timestamp="1610109301808">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1899" height="282" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1610035315268" />
-    <state width="1899" height="282" key="GridCell.Tab.0.right" timestamp="1610035315268">
+    <state width="1899" height="282" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1610109301808" />
+    <state width="1899" height="282" key="GridCell.Tab.0.right" timestamp="1610109301808">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1899" height="282" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1610035315268" />
+    <state width="1899" height="282" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1610109301808" />
+    <state x="461" y="164" key="SettingsEditor" timestamp="1610107717493">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="461" y="164" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1610107717493" />
   </component>
 </project>

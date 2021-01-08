@@ -8,7 +8,7 @@ pygame.display.set_caption('Игра')
 size = width, height = 1600, 800
 screen = pygame.display.set_mode(size, pygame.FULLSCREEN)
 pixel_size = height // 100
-MAIN_FONT = pygame.font.Font("data/cool pixel font.ttf", 30)
+MAIN_FONT = pygame.font.Font("data/cool pixel font.ttf", pixel_size * 4)
 mouse = False
 mouseprev = False
 click = False
@@ -58,24 +58,49 @@ def in_rect(rect, xy):
 
 
 class Speech(pygame.sprite.Sprite):  # Я не помню, как это называется, но короче тут текст сидит
-    def __init__(self, text, *group):
+    def __init__(self, text, *group, colorlib=None):
         super().__init__(*group)
-        self.image = btnimg.copy()
-        self.rect = pygame.Rect(pixel_size, height * 5 / 8, width - pixel_size,
-                                height * 3 / 8 - pixel_size)
-        self.text = text
+        if colorlib is None:
+            colorlib = {}
+        self.image = load_image("dialogue.png")
+        self.rect = pygame.Rect(pixel_size, pixel_size * 69, width - pixel_size,
+                                pixel_size * 30)
+        if type(text) == str:
+            self.text = text.rstrip().split("\n")
+        else:
+            self.text = text
+        self.text[0] = '* ' + self.text[0]
+        self.normaltext = "".join(self.text)
+        self.colorlib = colorlib
+        self.maincolor = pygame.Color(0, 200, 0)
         self.rate = 3
         self.step = 0
 
     def update(self, mpos, click):
-        self.step += self.step < (len(self.text) - 1) * self.rate
-        bltext = MAIN_FONT.render(self.text[self.step // self.rate], False, (0, 200, 0))
-        self.image.blit(bltext, (pixel_size + MAIN_FONT.size(
-            self.text[:self.step // self.rate + 1])[0], pixel_size))
+        self.step += self.step < (sum([len(i) for i in self.text]) - 1) * self.rate
+        if self.step // self.rate not in self.colorlib:
+            color = self.maincolor
+        else:
+            color = self.colorlib[self.step // self.rate]
+        bltext = MAIN_FONT.render(self.normaltext[self.step // self.rate], False, color)
+        j = self.step // self.rate
+        numline = 0
+        for i in self.text:
+            if j >= len(i):
+                j -= len(i)
+                numline += 1
+            else:
+                break
+        self.image.blit(bltext, (pixel_size * 3 + MAIN_FONT.size(
+            self.text[numline][:j + 1])[0], pixel_size * 4 + MAIN_FONT.get_height() * numline))
 
     def set_text(self, text):
         self.image = btnimg.copy()
-        self.text = text
+        if type(text) == str:
+            self.text = text.rstrip().split("\n")
+        else:
+            self.text = text
+        self.text[0] = '* ' + self.text[0]
         self.step = 0
 
 
@@ -98,6 +123,7 @@ class Tile(pygame.sprite.Sprite):
 
 class Ball(pygame.sprite.Sprite):
     def __init__(self):
+        global sprites
         super().__init__(sprites)
         self.image = pygame.Surface(())
 
@@ -127,15 +153,16 @@ class Button(pygame.sprite.Sprite):
                          (self.rect.h - MAIN_FONT.get_height()) / 2))
         self.func = func
 
-    def update(self, event, click):
+    def update(self, mpos, click):
         # Нажатие кнопки
-        if event.type in [pygame.MOUSEMOTION, pygame.MOUSEBUTTONDOWN] and \
-                in_rect((self.rect.x, self.rect.y, *self.rect.size), event.pos) and click:
+        if in_rect((self.rect.x, self.rect.y, *self.rect.size), mpos) and click:
             self.func()
 
 
-class Cut_Scean:
-    def __init__(self, color, text=[]):
+class CutScene:
+    def __init__(self, color, text=None):
+        if text is None:
+            text = []
         self.frazes = text
         self.color = color
 
@@ -281,17 +308,17 @@ class Reakcia:
     def __init__(self):
         self.width = 5
         self.height = 5
-        self.cut_sceans = [Cut_Scean((0, 255, 0), ['В данном тесте',
-                                                   'мы проверим твою скорость обработки информации',
-                                                   'Ты должен найти ,среди массива данных, файл',
-                                                   'в котором есть слово "красный"',
-                                                   'Попробуй уложиться в две милисекунды']),
-                           Cut_Scean((0, 255, 0), ['Слишком медленно',
-                                                   'Посмотрим что не так и попробуем сново']),
-                           Cut_Scean((0, 255, 0), ['Ты ошибся',
-                                                   'Посмотрим что не так и попробуем сново']),
-                           Cut_Scean((0, 255, 0), ['Прекрасно',
-                                                   'Ты справился. Идём дальше'])]
+        self.cut_sceans = [CutScene((0, 255, 0), ['В данном тесте',
+                                                   'мы проверим твою скорость обработки информации.',
+                                                   'Среди массива данных ты должен найти файл,',
+                                                   'в котором есть слово "красный".',
+                                                   'Попробуй уложиться в две миллисекунды.']),
+                           CutScene((0, 255, 0), ['Слишком медленно!',
+                                                   'Посмотрим что не так и попробуем снова.']),
+                           CutScene((0, 255, 0), ['Ты ошибся!',
+                                                   'Посмотрим что не так и попробуем снова.']),
+                           CutScene((0, 255, 0), ['Прекрасно.',
+                                                   'Ты справился. Идём дальше.'])]
         # значения по умолчанию
         self.left = 10
         self.top = 10
@@ -314,9 +341,9 @@ class Reakcia:
         for i in range(len(self.board)):
             for j in range(len(self.board[i])):
                 if i != self.pos[1] or j != self.pos[0]:
-                    self.board[i][j] = (random.choice(range(155)),
-                                        random.choice(range(255)),
-                                        random.choice(range(255)))
+                    self.board[i][j] = (random.randrange(155),
+                                        random.randrange(255),
+                                        random.randrange(255))
                 else:
                     self.board[i][j] = (255, 0, 0)
 
@@ -401,6 +428,7 @@ def menu():
     sprites = pygame.sprite.Group()
     Button(8, 8, btnimg.copy(), 'Играть', (0, 200, 0), Reakcia, buttons, sprites)
     Button(8, 80, btnimg.copy(), 'Выход', (0, 200, 0), exit, buttons, sprites)
+    # Speech(["Heya", "Name's Sans", "Sans the skeleton"], sprites)
     # Теоретическое положение курсора
     # по умолчанию
     mouse_pos = (0, 0)
@@ -424,7 +452,7 @@ def menu():
             click = True
         else:
             click = False
-        sprites.update(event, click)
+        sprites.update(mouse_pos, click)
         sprites.draw(screen)
         pygame.display.flip()
         clock.tick(fps)
