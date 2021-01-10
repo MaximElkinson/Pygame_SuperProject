@@ -17,6 +17,7 @@ else:
     screen = pygame.display.set_mode(size, pygame.RESIZABLE)
 pixel_size = height // 800 * 8  # Игра пиксельная, поэтому определяется размер игрового пикселя
 MAIN_FONT = pygame.font.Font("data/cool pixel font.ttf", pixel_size * 6)  # Основной шрифт
+BIG_FONT = pygame.font.Font("data/cool pixel font.ttf", pixel_size * 10)  # Крупная версия
 mouse = False  # Состояние нажатия мышкой
 mouseprev = False  # Предыдущее состояние нажатия мышкой
 click = False  # Кликнула ли мышка в данный игровой тик
@@ -47,17 +48,6 @@ def load_image(name, colorkey=None):  # Функция загрузки изоб
 btnimg = load_image("кнопка.png")  # Основной спрайт кнопки
 
 
-def start():
-    global screen
-    global buttons
-    del buttons[:]
-    a = CutScene((0, 255, 0))
-    a.add_fraze('adfs')
-    a.add_fraze('bsfd')
-    a.add_fraze('csdg')
-    a.start(screen)
-
-
 def in_rect(rect, xy):  # Функция проверки нахождения точки в прямоугольнике
     if rect[0] <= xy[0] < rect[0] + rect[2] and rect[1] <= xy[1] < rect[1] + rect[3]:
         return True
@@ -67,23 +57,23 @@ def in_rect(rect, xy):  # Функция проверки нахождения �
 class GameStage:  # Надкласс для стадий игры, чтобы не создавать кучу повторяющихся циклов
     def __init__(self):
         self.elements = []
+        self.nextstage = None
         self.active = True
 
-    def update(self, *args):  # Изначально пустая функция для обновления спрайтов и т.п.
+    def update(self):  # Изначально пустая функция для обновления спрайтов и т.п.
         pass
 
-    def transform(self, Stage=None, *args):  # Функция для перехода с одной стадии к другой
+    def transform(self, stage=None):  # Функция для перехода с одной стадии к другой
         self.active = False
         for i in self.elements:
             i.kill()
-        if Stage is None:
-            del (self)
+        if stage is None:
             return
-        self = Stage(*args)
+        self.nextstage = stage
 
 
 class Speech(pygame.sprite.Sprite):  # "Монологовое окно", отсюда приходит текст
-    def __init__(self, text, *group, colorlib=None, func=None, cutscene=False, rate=3):
+    def __init__(self, text, *group, colorlib=None, stay=False, func=do_nothing, cutscene=False, rate=2):
         super().__init__(*group)
         if colorlib is None:
             colorlib = {}
@@ -112,6 +102,11 @@ class Speech(pygame.sprite.Sprite):  # "Монологовое окно", отс
         self.step = 0  # Шаг, грубо говоря, где "каретка" находится в тексте
         self.cutscene = cutscene  # Особый тип, на случай "кат-сцен"
         self.func = func  # Функция, запускающаяся после всех фраз
+        self.stay = stay  # Если включено, объект можно будет удалить только вручную
+        if cutscene:
+            self.font = BIG_FONT
+        else:
+            self.font = MAIN_FONT
         if func is None:
             self.func = do_nothing()  # Заглушка, если ничего не нужно
 
@@ -125,16 +120,20 @@ class Speech(pygame.sprite.Sprite):  # "Монологовое окно", отс
         # "Проматывание" текущего текста до конца, если лень смотреть анимацию
         if doskip and self.step < (len(self.normaltext)) * self.rate - 1:
             self.step = (len(self.normaltext) - 1) * self.rate
-            bltext = [MAIN_FONT.render(i, False, color) for i in self.text]
+            bltext = [self.font.render(i, False, color) for i in self.text]
             for i in range(len(bltext)):  # Цикл, потому что несколько строк
+                if self.cutscene:
+                    x = (width - self.font.size(self.text[i])[0]) // 2
+                else:
+                    x = pixel_size * 4
                 self.image.blit(bltext[i], (
-                    pixel_size * 4, pixel_size * 4 + MAIN_FONT.get_height() * i))
+                    x, pixel_size * (4 + 20 * self.cutscene) + self.font.get_height() * i))
         elif doskip:  # Если текст уже доанимировался, нажатие запускает следующую фразу
             self.next_phrase()
         elif self.step < (len(self.normaltext)) * self.rate - 1:
             if self.step % self.rate == 0:
                 # Если ничего не произошло, просто рендерим следующий символ
-                bltext = MAIN_FONT.render(self.normaltext[self.step // self.rate], False, color)
+                bltext = self.font.render(self.normaltext[self.step // self.rate], False, color)
                 j = self.step // self.rate
                 numline = 0
                 for i in self.text:
@@ -143,8 +142,13 @@ class Speech(pygame.sprite.Sprite):  # "Монологовое окно", отс
                         numline += 1
                     else:
                         break
-                self.image.blit(bltext, (pixel_size * 4 + MAIN_FONT.size(
-                    self.text[numline][:j])[0], pixel_size * 4 + MAIN_FONT.get_height() * numline))
+                if self.cutscene:
+                    x = (width - self.font.size(self.text[numline])[0]) // 2
+                else:
+                    x = pixel_size * 4
+                self.image.blit(bltext, (x + self.font.size(
+                    self.text[numline][:j])[0], pixel_size * (4 + 20 * self.cutscene) +
+                                         self.font.get_height() * numline))
             self.step += 1  # +1 шаг
 
     def set_text(self, text):  # Функция для переделки текста
@@ -164,10 +168,18 @@ class Speech(pygame.sprite.Sprite):  # "Монологовое окно", отс
     def next_phrase(self):  # Переход к следующей фразе
         if self.phrase >= len(self.fulltext) - 1:
             self.func()
-            self.kill()
+            if not self.stay:
+                self.kill()
         else:
             self.phrase += 1
             self.set_text(self.fulltext[self.phrase])
+
+    def is_complete(self):  # Если весь текст прокручен, то True
+        if self.phrase == len(self.fulltext) - 1 and \
+                self.step == (len(self.normaltext)) * self.rate - 1:
+            return True
+        print("ono:(")
+        return False
 
 
 class Tile(pygame.sprite.Sprite):
@@ -234,48 +246,6 @@ class Button(pygame.sprite.Sprite):
                          (self.rect.h - MAIN_FONT.get_height()) / 2))
 
 
-class CutScene:
-    def __init__(self, color, text=None):
-        if text is None:
-            text = []
-        self.frazes = text
-        self.color = color
-
-    def add_fraze(self, text):
-        self.frazes.append(text)
-
-    def start(self, screen):
-        TIMEPRINT = pygame.USEREVENT + 1
-        pygame.time.set_timer(TIMEPRINT, 300)
-        screen.fill(pygame.Color(0, 0, 0))
-        running = True
-        x = 0
-        y = 0
-        s = 0
-        l = 0
-        while running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-                if event.type == TIMEPRINT:
-                    if s < len(self.frazes):
-                        font = MAIN_FONT
-                        text = font.render(self.frazes[s][l], True, self.color)
-                        screen.blit(text, (x, y))
-                        l += 1
-                        x += 15
-                        pygame.display.flip()
-                        if l == len(self.frazes[s]):
-                            s += 1
-                            l = 0
-                            x = 0
-                            y += 30
-                    else:
-                        running = False
-                if event.type == pygame.MOUSEBUTTONUP:
-                    running = False
-
-
 class MainMenu(GameStage):
     def __init__(self):
         super().__init__()
@@ -327,13 +297,25 @@ class MainSettings(GameStage):
 class Intro(GameStage):
     def __init__(self):
         super().__init__()
+        self.funytimer = 30
+        self.wasnt = True
         self.elements = [Speech([["Дарова."],
-                                 ["Кароче это типа вступление, поэтому фона нету хыхя"],
-                                 ["В общем, иди дорабатывай."]],
-                                sprites, cutscene=True, rate=5, func=self.to_main_menu)]
+                                 ["Кароче это типа вступление,", "поэтому фона нету хыхя"],
+                                 ["В общем, ща буит демка, смари:"]],
+                                sprites, cutscene=True, rate=4, stay=True)]
 
     def to_main_menu(self):
         self.transform(MainMenu)
+
+    def update(self, *args):
+        if self.elements[0].is_complete() and self.wasnt:
+            self.funytimer -= 1
+        if self.funytimer == 0:
+            self.wasnt = False
+            self.elements.append(Button((width - btnimg.get_width()) // 2,
+                                        (height - btnimg.get_height()) // 2,
+                                        btnimg.copy(), "нажми", (0, 200, 0), self.to_main_menu,
+                                        buttons, sprites))
 
 
 class Naperstki:
@@ -587,6 +569,11 @@ if __name__ == '__main__':
             click = True
         else:
             click = False
+        nextstage = stage.nextstage
+        if nextstage is not None:
+            del stage
+            stage = nextstage()
+        stage.update()
         sprites.update(mouse_pos, click, pygame.key.get_pressed())
         screen.fill((0, 0, 0))
         sprites.draw(screen)
