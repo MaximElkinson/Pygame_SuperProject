@@ -42,15 +42,6 @@ class GameStage:  # Надкласс для стадий игры, чтобы н
         self.args = args
 
 
-class MySprite(pygame.sprite.Sprite):
-    def __init__(self):
-        super().__init__()
-        self.blimage = self.image
-
-    def change_rgb(self, rgb):
-        self.image.fill(rgb)
-
-
 class Speech(pygame.sprite.Sprite):  # "Монологовое окно", отсюда приходит текст
     def __init__(self, text, colorlib=None, stay=False, func=do_nothing, cutscene=False,
                  rate=2, chars=None, rates=None):
@@ -312,7 +303,10 @@ class Intro(GameStage):
         self.wasnt = True
         self.elements = [
             Speech([["Дарова."],
-                    ["Кароче это типа вступление,", "поэтому фона нету хыхя"],
+                    ["Кароче это типа вступление.",
+                     "Ты кампуктир, для тебя время",
+                     "идет на порядки медленнее,",
+                     "бла-бла-бла..."],
                     ["В общем, ща буит демка, смари:"]],
                    cutscene=True, rate=4, stay=True)
         ]
@@ -411,8 +405,11 @@ class Reakcia(GameStage):
         self.stop = True
         if not not_first:
             self.elements.append(
-                Speech([["Дарова кампуктир!", "Сейчас ты буишь прахадить тест на реакцию!"],
-                        ["Ну все, начинай!"]], rate=1, func=self.start)
+                Speech([["Дарова кампуктир!",
+                         "Сейчас ты буишь прахадить тест на реакцию!",
+                         "Тебе нужно как можно быстрее найти и указать на красный квадрат.",
+                         "Поторопись, у тебя есть лишь одна миллисекунда!"],
+                        ["Ну все, начинай!"]], func=self.start)
             )
         else:
             self.start()
