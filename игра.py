@@ -25,19 +25,21 @@ sprites = pygame.sprite.Group()
 class GameStage:  # Надкласс для стадий игры, чтобы не создавать кучу повторяющихся циклов
     def __init__(self):
         self.elements = []
+        self.args = None
         self.nextstage = None
         self.active = True
 
     def update(self):  # Изначально пустая функция для обновления спрайтов и т.п.
         pass
 
-    def transform(self, stage=None):  # Функция для перехода с одной стадии к другой
+    def transform(self, stage=None, *args):  # Функция для перехода с одной стадии к другой
         self.active = False
         for i in self.elements:
             i.kill()
         if stage is None:
             return
         self.nextstage = stage
+        self.args = args
 
 
 class MySprite(pygame.sprite.Sprite):
@@ -353,7 +355,8 @@ class ReakTile(pygame.sprite.Sprite):
                              random.randint(100, 230),
                              random.randint(0, 160))
         self.image.fill(color)
-        color.hsva = [color.hsva[0], color.hsva[1], color.hsva[2] - 30, color.hsva[3]]
+        color.hsva = (color.hsva[0], min(color.hsva[1], 100),
+                      max(color.hsva[2] - 30, 0), min(color.hsva[3], 100))
         self.image.fill(color, pygame.Rect(pixel_size, pixel_size, 6 * pixel_size, 6 * pixel_size))
         self.rect = pygame.Rect(*xy, pixel_size * 8, pixel_size * 8)
         self.func = func
@@ -374,9 +377,17 @@ class ReakTile(pygame.sprite.Sprite):
     def is_red(self):
         return self.red
 
-    def change_color(self, color):
+    def change_color(self, color=None):
+        if color is None:
+            color = pygame.Color(random.randint(0, 160),
+                                 random.randint(100, 230),
+                                 random.randint(0, 160))
         self.image.fill(color)
-        color.hsva = [color.hsva[0], color.hsva[1], color.hsva[2] - 30, color.hsva[3]]
+        try:
+            color.hsva = (color.hsva[0], min(color.hsva[1], 100),
+                          max(color.hsva[2] - 30, 0), min(color.hsva[3], 100))
+        except ValueError:
+            print(color.hsva, color.hsva[2] - 30)
         self.image.fill(color, pygame.Rect(pixel_size, pixel_size, 6 * pixel_size, 6 * pixel_size))
 
     def blacknwhite(self):
@@ -386,7 +397,7 @@ class ReakTile(pygame.sprite.Sprite):
 
 
 class Reakcia(GameStage):
-    def __init__(self):
+    def __init__(self, not_first=False):
         super().__init__()
         for i in range(10):
             for j in range(10):
@@ -394,40 +405,60 @@ class Reakcia(GameStage):
                                                j * 8 * pixel_size,
                                                (height - pixel_size * 80) // 2 +
                                                i * 8 * pixel_size), self.error))
-        self.elements[random.randrange(0, len(self.elements))].change_func(self.win)
-        self.timer = 60
+        self.timer = 61
+        self.updatetiles = 0
+        self.game_started = False
+        self.stop = True
+        if not not_first:
+            self.elements.append(
+                Speech([["Дарова кампуктир!", "Сейчас ты буишь прахадить тест на реакцию!"],
+                        ["Ну все, начинай!"]], rate=1, func=self.start)
+            )
+        else:
+            self.start()
+
+    def start(self):
+        self.game_started = True
         self.stop = False
+        for i in range(100):
+            self.elements[i].change_color()
+        self.elements[random.randrange(0, len(self.elements))].change_func(self.win)
 
     def update(self):
-        if not self.stop:
-            self.timer -= 1
-        if self.timer == 0:
-            self.error([["А ты че думал, это на время игра!", "Попробуй еще разок."]])
-        print(str(round(self.timer / 60, 2)))
-        bltext = MAIN_FONT.render(str(round(self.timer / 60, 2)), False, (0, 200, 0))
-        #screen.blit(bltext, ((width - MAIN_FONT.size(str(round(self.timer / 60, 2)))[0]) // 2, 0))
-        screen.blit(bltext, (0, 0))
+        self.updatetiles += 1
+        if self.game_started:
+            if not self.stop:
+                self.timer -= 1
+            if self.timer == 0:
+                self.error([["А ты че думал, это на время игра!", "Попробуй еще разок."]])
+            bltext = MAIN_FONT.render(str(round(self.timer / 60, 2)), False, (0, 200, 0))
+            screen.blit(bltext, ((width - MAIN_FONT.size(str(round(self.timer / 60, 2)))[0]) // 2, 0))
+            screen.blit(bltext, (0, 0))
+        elif self.updatetiles % 20 == 0:
+            for i in range(100):
+                self.elements[i].change_color()
 
     def error(self, phrase=None):
         if not self.stop:
             self.stop = True
-            for i in self.elements:
-                i.blacknwhite()
+            for i in range(100):
+                self.elements[i].blacknwhite()
             if phrase is None:
                 phrase = [["Прамахнулся! Папробуй еще разок."]]
             self.elements.append(Speech(phrase, func=self.retry))
 
     def win(self):
-        self.stop = True
-        self.elements.append(Speech([["Молодчинка!!!!", "США в шоке!!!!"],
-                                     ["А терь вали атсюда."]],
-                                    func=self.to_menu))
+        if not self.stop:
+            self.stop = True
+            self.elements.append(Speech([["Молодчинка!!!!", "США в шоке!!!!"],
+                                         ["А терь вали атсюда."]],
+                                        func=self.to_menu))
 
     def to_menu(self):
         self.transform(MainMenu)
 
     def retry(self):
-        self.transform(Reakcia)
+        self.transform(Reakcia, True)
 
 
 if __name__ == '__main__':
@@ -458,8 +489,7 @@ if __name__ == '__main__':
         sprites.draw(screen)
         nextstage = stage.nextstage
         if nextstage is not None:
-            del stage
-            stage = nextstage()
+            stage = nextstage(*stage.args)
         stage.update()
         # screen.blit(load_image("sans.png", scale=pixel_size), (0, 0))
         pygame.display.flip()
