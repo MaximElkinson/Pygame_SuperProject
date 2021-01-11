@@ -114,7 +114,7 @@ class Speech(pygame.sprite.Sprite):  # "Монологовое окно", отс
         else:
             color = self.colorlib[(self.phrase, self.step // self.rates[self.phrase])]
         # "Проматывание" текущего текста до конца, если лень смотреть анимацию
-        if doskip and self.step < (len(self.normaltext)) * self.rates[self.phrase] - 1:
+        if doskip and self.step < (len(self.normaltext)) * self.rates[self.phrase]:
             self.step = (len(self.normaltext) - 1) * self.rates[self.phrase]
             bltext = [self.font.render(i, False, color) for i in self.text]
             for i in range(len(bltext)):  # Цикл, потому что несколько строк
@@ -126,7 +126,7 @@ class Speech(pygame.sprite.Sprite):  # "Монологовое окно", отс
                     x, pixel_size * (4 + 20 * self.cutscene) + self.font.get_height() * i))
         elif doskip:  # Если текст уже доанимировался, нажатие запускает следующую фразу
             self.next_phrase()
-        elif self.step < (len(self.normaltext)) * self.rates[self.phrase] - 1:
+        elif self.step < (len(self.normaltext)) * self.rates[self.phrase]:
             if self.step % self.rates[self.phrase] == 0:
                 # Если ничего не произошло, просто рендерим следующий символ
                 bltext = self.font.render(
@@ -181,7 +181,7 @@ class Speech(pygame.sprite.Sprite):  # "Монологовое окно", отс
 
     def is_complete(self):  # Если весь текст прокручен, то True
         if self.phrase == len(self.fulltext) - 1 and \
-                self.step == (len(self.normaltext)) * self.rates[self.phrase] - 1:
+                self.step == (len(self.normaltext)) * self.rates[self.phrase]:
             return True
         return False
 
