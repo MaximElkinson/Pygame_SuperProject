@@ -319,7 +319,7 @@ class Intro(GameStage):
         self.transform(MainMenu)
 
     def demo(self):
-        self.transform(Demo)
+        self.transform(Reakcia)
 
     def update(self, *args):
         if self.elements[0].is_complete() and self.wasnt:
@@ -345,13 +345,97 @@ class Demo(GameStage):
         ]
 
 
+class ReakTile(pygame.sprite.Sprite):
+    def __init__(self, xy, func):
+        super().__init__(sprites)
+        self.image = pygame.Surface((pixel_size * 8, pixel_size * 8))
+        color = pygame.Color(random.randint(0, 160),
+                             random.randint(100, 230),
+                             random.randint(0, 160))
+        self.image.fill(color)
+        color.hsva = [color.hsva[0], color.hsva[1], color.hsva[2] - 30, color.hsva[3]]
+        self.image.fill(color, pygame.Rect(pixel_size, pixel_size, 6 * pixel_size, 6 * pixel_size))
+        self.rect = pygame.Rect(*xy, pixel_size * 8, pixel_size * 8)
+        self.func = func
+        self.red = False
+
+    def update(self, mpos, click, *args):
+        if in_rect((self.rect.x, self.rect.y, *self.rect.size), mpos) and click:
+            self.func()
+
+    def change_func(self, func2):
+        self.func = func2
+        color = pygame.Color(255, 0, 0)
+        self.image.fill(color)
+        color = pygame.Color(200, 0, 0)
+        self.image.fill(color, pygame.Rect(pixel_size, pixel_size, 6 * pixel_size, 6 * pixel_size))
+        self.red = True
+
+    def is_red(self):
+        return self.red
+
+    def change_color(self, color):
+        self.image.fill(color)
+        color.hsva = [color.hsva[0], color.hsva[1], color.hsva[2] - 30, color.hsva[3]]
+        self.image.fill(color, pygame.Rect(pixel_size, pixel_size, 6 * pixel_size, 6 * pixel_size))
+
+    def blacknwhite(self):
+        color = self.image.get_at((0, 0))
+        color.hsva = [color.hsva[0], 0, color.hsva[2], color.hsva[3]]
+        self.change_color(color)
+
+
+class Reakcia(GameStage):
+    def __init__(self):
+        super().__init__()
+        for i in range(10):
+            for j in range(10):
+                self.elements.append(ReakTile(((width - pixel_size * 80) // 2 +
+                                               j * 8 * pixel_size,
+                                               (height - pixel_size * 80) // 2 +
+                                               i * 8 * pixel_size), self.error))
+        self.elements[random.randrange(0, len(self.elements))].change_func(self.win)
+        self.timer = 60
+        self.stop = False
+
+    def update(self):
+        if not self.stop:
+            self.timer -= 1
+        if self.timer == 0:
+            self.error([["А ты че думал, это на время игра!", "Попробуй еще разок."]])
+        print(str(round(self.timer / 60, 2)))
+        bltext = MAIN_FONT.render(str(round(self.timer / 60, 2)), False, (0, 200, 0))
+        #screen.blit(bltext, ((width - MAIN_FONT.size(str(round(self.timer / 60, 2)))[0]) // 2, 0))
+        screen.blit(bltext, (0, 0))
+
+    def error(self, phrase=None):
+        if not self.stop:
+            self.stop = True
+            for i in self.elements:
+                i.blacknwhite()
+            if phrase is None:
+                phrase = [["Прамахнулся! Папробуй еще разок."]]
+            self.elements.append(Speech(phrase, func=self.retry))
+
+    def win(self):
+        self.stop = True
+        self.elements.append(Speech([["Молодчинка!!!!", "США в шоке!!!!"],
+                                     ["А терь вали атсюда."]],
+                                    func=self.to_menu))
+
+    def to_menu(self):
+        self.transform(MainMenu)
+
+    def retry(self):
+        self.transform(Reakcia)
+
+
 if __name__ == '__main__':
     running = True
     # Теоретическое положение курсора по умолчанию
     mouse_pos = (0, 0)
     clock = pygame.time.Clock()
     stage = MainMenu()
-    fps = 60
     while running:
         mouseprev = mouse
         mouse_on_screen = pygame.mouse.get_focused()
@@ -369,14 +453,14 @@ if __name__ == '__main__':
             click = True
         else:
             click = False
+        sprites.update(mouse_pos, click, pygame.key.get_pressed())
+        screen.fill((0, 0, 0))
+        sprites.draw(screen)
         nextstage = stage.nextstage
         if nextstage is not None:
             del stage
             stage = nextstage()
         stage.update()
-        sprites.update(mouse_pos, click, pygame.key.get_pressed())
-        screen.fill((0, 0, 0))
-        sprites.draw(screen)
         # screen.blit(load_image("sans.png", scale=pixel_size), (0, 0))
         pygame.display.flip()
         clock.tick(fps)
