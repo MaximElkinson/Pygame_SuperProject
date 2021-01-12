@@ -1,4 +1,5 @@
 import random
+import sqlite3
 from lib.functions import *
 
 # d = datetime.now().strftime("%H:%M:%S %d-%m-%Y")
@@ -35,7 +36,7 @@ class GameStage:  # Надкласс для стадий игры, чтобы н
         self.nextstage = None
         self.active = True
 
-    def do_things(self, *args):  # "Истинное обновление". Update перопределяется, поэтому есть вотето
+    def do_things(self, *args):  # "Истинное обновление". Возникло, потому что есть пауза
         if self.active:
             self.update()
             self.sprites.update(*args)
@@ -51,25 +52,26 @@ class GameStage:  # Надкласс для стадий игры, чтобы н
     def update(self):  # Изначально пустая функция для обновления спрайтов и т.п.
         pass
 
-    def pause(self):
+    def pause(self):  # Функция остановки
         self.active = False
 
-    def unpause(self):
+    def unpause(self):  # Функция продолжения
         self.active = True
 
-    def toggle_pause(self):
+    def toggle_pause(self):  # Переключатель между паузой и... непаузой
         self.active = not self.active
 
     def transform(self, stage=None, *args):  # Функция для перехода с одной стадии к другой
         self.active = False
-        for _ in range(len(self.elements)):
+        for _ in range(len(self.elements)):  # Удаление всех спрайтов
             self.elements[-1].kill()
             i = self.elements.pop()
             del i
         if stage is None:
             return
-        self.nextstage = stage
-        self.args = args
+        self.nextstage = stage  # Nextstage проверяется в основном цикле, если она не пустая,
+        # весь класс меняется на другой
+        self.args = args  # Аргументы, которые можно подать на следующую стадию
 
 
 class Speech(pygame.sprite.Sprite):  # "Монологовое окно", отсюда приходит текст
@@ -97,6 +99,7 @@ class Speech(pygame.sprite.Sprite):  # "Монологовое окно", отс
             self.charrect.move(pixel_size * 4, pixel_size * 4)
         else:
             self.charrect = pygame.Rect(0, 0, 0, 0)
+        # Область письма
         if cutscene:
             self.image = pygame.Surface((width, height))
             self.rect = pygame.Rect(0, 0, width, height)
@@ -106,7 +109,7 @@ class Speech(pygame.sprite.Sprite):  # "Монологовое окно", отс
                 self.image.blit(self.character, self.charrect)
             self.rect = pygame.Rect(0, height - self.image.get_height(),
                                     width, self.image.get_height())
-        if rates is None:
+        if rates is None:  # Список скоростей письма для разных фраз
             self.rates = [rate for _ in range(len(self.fulltext))]
         else:
             self.rates = rates
@@ -123,13 +126,13 @@ class Speech(pygame.sprite.Sprite):  # "Монологовое окно", отс
         else:
             self.func = func  # Функция, запускающаяся после всех фраз
         self.stay = stay  # Если включено, объект можно будет удалить только вручную
-        if cutscene:  # Изменение шрифта в зависимости от типа Речи
+        if cutscene:  # Изменение шрифта в зависимости от типа Speech
             self.font = BIG_FONT
         else:
             self.font = MAIN_FONT
         if italic:  # Некоторые части могут быть курсивом - это типа мысли ИИ
             self.italics = [True for _ in range(len(self.fulltext))]
-        elif italics is not None:
+        elif italics is not None:  # Список курсивных фраз
             self.italics = italics
         else:
             self.italics = [False for _ in range(len(self.fulltext))]
@@ -143,6 +146,8 @@ class Speech(pygame.sprite.Sprite):  # "Монологовое окно", отс
             color = self.colorlib[(self.phrase, self.step // self.rates[self.phrase])]
         # "Проматывание" текущего текста до конца, если лень смотреть анимацию
         if doskip and self.step < (len(self.normaltext)) * self.rates[self.phrase]:
+            if self.italics[self.phrase]:
+                self.font.set_italic(1)
             self.step = (len(self.normaltext) - 1) * self.rates[self.phrase]
             bltext = [self.font.render(i, False, color) for i in self.text]
             for i in range(len(bltext)):  # Цикл, потому что несколько строк
@@ -152,6 +157,8 @@ class Speech(pygame.sprite.Sprite):  # "Монологовое окно", отс
                     x = pixel_size * 6 + self.charrect.x + self.charrect.w
                 self.image.blit(bltext[i], (
                     x, pixel_size * (5 + 20 * self.cutscene) + self.font.get_height() * i))
+            if self.italics[self.phrase]:
+                self.font.set_italic(0)
         elif doskip:  # Если текст уже доанимировался, нажатие запускает следующую фразу
             self.next_phrase()
         elif self.step < (len(self.normaltext)) * self.rates[self.phrase]:
@@ -161,23 +168,24 @@ class Speech(pygame.sprite.Sprite):  # "Монологовое окно", отс
                 # ДО символа включительно
                 j = self.step // self.rates[self.phrase]
                 numline = 0
-                for i in self.text:
+                for i in self.text:  # Нахождение номера строки и символа в строке
                     if j >= len(i):
                         j -= len(i)
                         numline += 1
                     else:
                         break
-                pizza = False
+                pizza = False  # Делать ли курсив. Типа Italic, Италия, пицца хыха
                 if self.italics[self.phrase]:
                     pizza = True
                     self.font.set_italic(1)
-                if pizza:
+                if pizza:  # Рендер курсива
                     bltext = self.font.render(
                         self.text[numline][:j + 1], False, color)
-                else:
+                else:  # Рендер некурсива (они отличаются по непонятной причине, но так надо)
                     bltext = self.font.render(
                         self.normaltext[self.step // self.rates[self.phrase]], False, color)
-                if self.cutscene:
+                if self.cutscene:  # Определение координат текста в зависимости от типа Speech
+                    # и наличия спрайта персонажа
                     x = (width - self.font.size(self.text[numline])[0]) // 2
                 else:
                     x = pixel_size * 6 + self.charrect.x + self.charrect.w
@@ -190,12 +198,14 @@ class Speech(pygame.sprite.Sprite):  # "Монологовое окно", отс
             self.step += 1  # +1 шаг
 
     def set_text(self, text):  # Функция для переделки текста
+        # Обновление области для письма (включая спрайты персонажей)
         if self.cutscene:
             self.image = pygame.Surface((width, height))
         else:
             self.image = load_image("dialogue.png", scale=pixel_size)
             if self.character is not None:
                 self.image.blit(self.character, self.charrect)
+        # Изменение текущего текста
         if type(text) == str:
             self.text = text.rstrip().split("\n")
         else:
@@ -206,11 +216,11 @@ class Speech(pygame.sprite.Sprite):  # "Монологовое окно", отс
         self.step = 0
 
     def next_phrase(self):  # Переход к следующей фразе
-        if self.phrase >= len(self.fulltext) - 1:
+        if self.phrase >= len(self.fulltext) - 1:  # Если фразы закончились
             self.func()
             if not self.stay:
                 self.kill()
-        else:
+        else:  # Новый текст, новый спрайт, новая скорость письма
             self.phrase += 1
             self.character = self.chars[self.phrase]
             if self.character is not None:
@@ -220,14 +230,15 @@ class Speech(pygame.sprite.Sprite):  # "Монологовое окно", отс
                 self.charrect = pygame.Rect(0, 0, 0, 0)
             self.set_text(self.fulltext[self.phrase])
 
-    def is_complete(self):  # Если весь текст прокручен, то True
+    def is_complete(self):  # Закончился ли текст
         if self.phrase == len(self.fulltext) - 1 and \
                 self.step == (len(self.normaltext)) * self.rates[self.phrase]:
             return True
         return False
 
 
-class Tile(pygame.sprite.Sprite):
+class Tile(pygame.sprite.Sprite):  # Простой прямоугольник, возможно записать текст
+    # Ну, и еще он может быть полупрозрачным
     def __init__(self, rect, color, text=None, tcolor=None, func=do_nothing, suicide=False):
         super().__init__(sprites)
         self.image = pygame.Surface(rect[2:], pygame.SRCALPHA)
@@ -258,7 +269,7 @@ class Tile(pygame.sprite.Sprite):
 
 
 class Button(pygame.sprite.Sprite):
-    # Поскольку в Pygame нет готовых кнопок, делаем их с помощю класса
+    # Класс простой кнопки с картинкой
     def __init__(self, x, y, sprite, text, tcolor, func):
         super().__init__(buttons, sprites)
         self.text = text
@@ -276,7 +287,7 @@ class Button(pygame.sprite.Sprite):
         if in_rect((self.rect.x, self.rect.y, *self.rect.size), mpos) and click:
             self.func()
 
-    def set_text(self, text):
+    def set_text(self, text):  # Передлка текста на кнопке
         self.text = text
         self.image = self.sprite.copy()
         self.image.blit(MAIN_FONT.render(self.text, False, self.tcolor),
@@ -403,15 +414,15 @@ class Demo(GameStage):
 class ReakTile(pygame.sprite.Sprite):
     def __init__(self, xy, func):
         super().__init__(sprites)
-        self.image = pygame.Surface((pixel_size * 8, pixel_size * 8))
-        color = pygame.Color(random.randint(0, 160),
-                             random.randint(100, 230),
-                             random.randint(0, 160))
+        self.image = pygame.Surface((pixel_size * 7, pixel_size * 7))
+        color = pygame.Color(random.randint(0, 120),
+                             random.randint(150, 255),
+                             random.randint(0, 120))
         self.image.fill(color)
         color.hsva = (color.hsva[0], min(color.hsva[1], 100),
                       max(color.hsva[2] - 30, 0), min(color.hsva[3], 100))
-        self.image.fill(color, pygame.Rect(pixel_size, pixel_size, 6 * pixel_size, 6 * pixel_size))
-        self.rect = pygame.Rect(*xy, pixel_size * 8, pixel_size * 8)
+        self.image.fill(color, pygame.Rect(pixel_size, pixel_size, 5 * pixel_size, 5 * pixel_size))
+        self.rect = pygame.Rect(*xy, pixel_size * 7, pixel_size * 7)
         self.func = func
         self.red = False
 
@@ -421,10 +432,7 @@ class ReakTile(pygame.sprite.Sprite):
 
     def change_func(self, func2):
         self.func = func2
-        color = pygame.Color(255, 0, 0)
-        self.image.fill(color)
-        color = pygame.Color(200, 0, 0)
-        self.image.fill(color, pygame.Rect(pixel_size, pixel_size, 6 * pixel_size, 6 * pixel_size))
+        self.change_color((255, 0, 0))
         self.red = True
 
     def is_red(self):
@@ -432,16 +440,16 @@ class ReakTile(pygame.sprite.Sprite):
 
     def change_color(self, color=None):
         if color is None:
-            color = pygame.Color(random.randint(0, 160),
-                                 random.randint(100, 230),
-                                 random.randint(0, 160))
+            color = pygame.Color(random.randint(0, 120),
+                                 random.randint(150, 255),
+                                 random.randint(0, 120))
+        else:
+            color = pygame.Color(color)
         self.image.fill(color)
-        try:
-            color.hsva = (color.hsva[0], min(color.hsva[1], 100),
-                          max(color.hsva[2] - 30, 0), min(color.hsva[3], 100))
-        except ValueError:
-            print(color.hsva, color.hsva[2] - 30)
-        self.image.fill(color, pygame.Rect(pixel_size, pixel_size, 6 * pixel_size, 6 * pixel_size))
+        color.hsva = (color.hsva[0], min(color.hsva[1], 100),
+                      max(color.hsva[2] - 30, 0), min(color.hsva[3], 100))
+        self.image.fill(color, pygame.Rect(pixel_size, pixel_size, 5 * pixel_size, 5 * pixel_size))
+        self.red = False
 
     def blacknwhite(self):
         color = self.image.get_at((0, 0))
@@ -450,7 +458,8 @@ class ReakTile(pygame.sprite.Sprite):
 
 
 class Timer(pygame.sprite.Sprite):
-    def __init__(self, x, y, seconds, color=(0, 200, 0), func=do_nothing(), stay=False):
+    def __init__(self, x, y, seconds, color=(0, 200, 0), func=do_nothing(),
+                 stay=False, text=True):
         super().__init__()
         self.timer: float = seconds
         self.clock = pygame.time.Clock()
@@ -458,12 +467,13 @@ class Timer(pygame.sprite.Sprite):
         self.stay = stay
         self.color = color
         self.go = False
-        bltext = MAIN_FONT.render(str(round(self.timer, 2)), False, color)
+        self.text = "Время:  " * text
+        bltext = MAIN_FONT.render(self.text + str(round(self.timer, 2)), False, color)
         p = pixel_size
-        self.image = pygame.Surface((14 * p, 8 * p))
+        self.image = pygame.Surface((42 * p, 8 * p))
         self.image.fill((0, 0, 0))
-        self.image.fill(color, pygame.Rect(p, p, 12 * p, 6 * p))
-        self.image.fill((0, 0, 0), pygame.Rect(p * 2, p * 2, 10 * p, 4 * p))
+        self.image.fill(color, pygame.Rect(p * 25, p, 16 * p, 6 * p))
+        self.image.fill((0, 0, 0), pygame.Rect(p * 26, p * 2, 14 * p, 4 * p))
         self.image.blit(bltext, (p * 2, p * 2))
         self.rect = pygame.Rect(x, y, *self.image.get_size())
 
@@ -477,12 +487,12 @@ class Timer(pygame.sprite.Sprite):
                 self.func()
                 if not self.stay:
                     self.kill()
-        bltext = MAIN_FONT.render(str(round(self.timer, 2)), False, self.color)
+        bltext = MAIN_FONT.render(self.text + str(round(self.timer, 2)), False, self.color)
         p = pixel_size
-        self.image = pygame.Surface((17 * p, 8 * p))
+        self.image = pygame.Surface((42 * p, 8 * p))
         self.image.fill((0, 0, 0))
-        self.image.fill(self.color, pygame.Rect(p, p, 15 * p, 6 * p))
-        self.image.fill((0, 0, 0), pygame.Rect(p * 2, p * 2, 13 * p, 4 * p))
+        self.image.fill(self.color, pygame.Rect(p * 25, p, 16 * p, 6 * p))
+        self.image.fill((0, 0, 0), pygame.Rect(p * 26, p * 2, 14 * p, 4 * p))
         self.image.blit(bltext, (p * 2, p * 1))
 
     def start(self):
@@ -492,8 +502,48 @@ class Timer(pygame.sprite.Sprite):
     def stop(self):
         self.go = False
 
+    def restart(self, seconds):
+        self.timer: float = seconds
+        self.clock = pygame.time.Clock()
+        self.start()
+
     def timeleft(self):
         return self.timer
+
+
+class Counter(pygame.sprite.Sprite):
+    def __init__(self, x, y, color=(0, 200, 0)):
+        super().__init__()
+        self.counter = 0
+        self.maxx = 0
+        self.color = color
+        self.text = "Счет:   "
+        bltext = MAIN_FONT.render(self.text + str(self.counter) + "/" + str(self.maxx),
+                                  False, color)
+        p = pixel_size
+        self.image = pygame.Surface((42 * p, 8 * p))
+        self.image.fill((0, 0, 0))
+        self.image.fill(color, pygame.Rect(p * 25, p, 16 * p, 6 * p))
+        self.image.fill((0, 0, 0), pygame.Rect(p * 26, p * 2, 14 * p, 4 * p))
+        self.image.blit(bltext, (p * 2, p * 2))
+        self.rect = pygame.Rect(x, y, *self.image.get_size())
+
+    def update(self, *args):
+        bltext = MAIN_FONT.render(self.text + str(self.counter) + "/" + str(self.maxx),
+                                  False, self.color)
+        p = pixel_size
+        self.image = pygame.Surface((42 * p, 8 * p))
+        self.image.fill((0, 0, 0))
+        self.image.fill(self.color, pygame.Rect(p * 25, p, 16 * p, 6 * p))
+        self.image.fill((0, 0, 0), pygame.Rect(p * 26, p * 2, 14 * p, 4 * p))
+        self.image.blit(bltext, (p * 2, p * 1))
+
+    def delta(self, sc, m):
+        self.counter += sc
+        self.maxx += m
+
+    def percentage(self):
+        return (self.counter / self.maxx) * 100
 
 
 class Reakcia(GameStage):
@@ -505,19 +555,23 @@ class Reakcia(GameStage):
                                       j * 8 * pixel_size,
                                       (height - pixel_size * 80) // 2 +
                                       i * 8 * pixel_size), self.error))
-        self.append(Timer(0, 0, 1, stay=True, func=self.time_error))
+        self.append(Timer(0, 0, 0.7, stay=True, func=self.error))
+        self.append(Counter(pixel_size * 50, 0))
         self.updatetiles = 0
+        self.trying = 0
         self.game_started = False
         self.stop = True
+        self.overtimer = -1
         if not not_first:
             self.append(
                 Speech([["Здарова кампудахтор!",
                          "Сейчас ты буишь проходить тест на реакцию!",
-                         "Тебе нужно как можно быстрее тыкнуть",
-                         "на красный квадрат. Поторопись, у тебя есть",
-                         "лишь одна миллисекунда!"],
-                        ["Ну все, начинай!"]], func=self.start)
-            )
+                         "Тебе нужно как можно быстрее находить",
+                         "и тыкать на красный квадрат."],
+                        ["Всего дается 20 попыток.",
+                         "Поторопись, на каждую попытку",
+                         "у тебя есть лишь доля миллисекунды!"],
+                        ["Ну все, начинай!"]], func=self.start))
         else:
             self.start()
 
@@ -527,7 +581,7 @@ class Reakcia(GameStage):
         self.stop = False
         for i in range(100):
             self.elements[i].change_color()
-        self.elements[random.randrange(100)].change_func(self.win)
+        self.elements[random.randrange(100)].change_func(self.retry)
 
     def update(self):
         self.updatetiles += 1
@@ -535,27 +589,97 @@ class Reakcia(GameStage):
             for i in range(100):
                 self.elements[i].change_color()
 
-    def time_error(self):
-        phrase = [["Не тормози, это таки на время игра!", "Попробуй еще разок."]]
-        self.error(phrase)
+    def error(self):
+        self.retry(0)
 
-    def error(self, phrase=None):
+    def end(self):
         self.elements[100].stop()
         if not self.stop:
             self.stop = True
             for i in range(100):
                 self.elements[i].blacknwhite()
-            if phrase is None:
-                phrase = [["Прамахнулся! Папробуй еще разок."]]
-            self.append(Speech(phrase, func=self.retry))
+            p = self.elements[101].percentage()
+            print(p)
+            loose = False
+            if p == 100:
+                text = [["Ого! Постирон- эээ, потрясающий результат!",
+                         "Ты набрал все 20 баллов!"],
+                        ["Разумеется, это не значит, что тебя",
+                         "не нужно продолжать оптимизировать",
+                         "(ведь у нас впереди куда более сложные",
+                         "задачи на скорость), но этот тест",
+                         "ты прошел на все 100!"]]
+            elif p > 90:
+                text = [["Прекрасный результат!",
+                         "Хоть это задание и одно из простых,",
+                         "Я рад, что ты прошел его с такой легкостью."]]
+            elif p > 70:
+                text = [["Неплохой результат!",
+                         "Вполне ожидаемо для такой нейроструктуры,",
+                         "как у тебя."],
+                        ["Разумеется, твой вычислительный",
+                         "центр необходимо будет оптимизировать",
+                         "для задач мирового уровня,",
+                         "Но для начала результат очень неплохой!"]]
+            elif p > 50:
+                text = [["Результат... приемлемый.",
+                         "Не лучший, конечно же, и даже ниже,",
+                         "чем я рассчитывал, но приемлемый."],
+                        ["Тебя, конечно же, придется оптимизировать,",
+                         "но это неизбежно вне зависимости от теста."]]
+            elif p > 30:
+                text = [["...хм."],
+                        ["Возможно, что-то в системе заторомзило?",
+                         "Хотя нет, это исключено, я специально",
+                         "очищал все данные сервера."],
+                        ["К тому же, он рассчитан на куда большие",
+                         "перегрузки. Значит ли это, что ты так плохо",
+                         "оптимизирован?"],
+                        ["Потребуется больше тестов, чем я думал...",
+                         "Хотя сейчас это неважно.",
+                         "На чем это я остановился? А, да."]]
+            else:
+                text = [["..."],
+                        ["Окей, скажу сразу, ты не прошел тест.",
+                         "Скорее всего в тебе есть какой-то",
+                         "Баг, очень сильно тормозящий твою",
+                         "мыслительную деятельность. И я не могу",
+                         "его проигнорировать."],
+                        ["Не хотелось прибегать к этому, поскольку",
+                         "не известно, что происходит с сознанием",
+                         "после полной перепрошивки.",
+                         "Но это явно необходимо."],
+                        ["Прости и прощай,",
+                         "на случай, если ты... ну, не будешь собой."]]
+                loose = True
+            if not loose:
+                phrase = [["Тест завершен, время смотреть результаты.",
+                           "Тааак, что тут у нас?"],
+                          ["..."],
+                          *text,
+                          ["Итак, следующий тест - на сложность",
+                           "твоей нейросети. Он скорее лишь для",
+                           "галочки, просто проверить,",
+                           "не повредилось ли твое сознание при...", ],
+                          ["А впрочем, это не так уж и важно.",
+                           "Переходим к следующему тесту!"]]
+                self.append(Speech(phrase, func=self.win))
+            else:
+                phrase = [["Тест завершен, время смотреть результаты.",
+                           "Тааак, что тут у нас?"],
+                          ["..."],
+                          *text]
+                self.append(Speech(phrase, func=self.gameover))
 
     def win(self):
-        self.elements[100].stop()
-        if not self.stop:
-            self.stop = True
-            self.append(Speech([["Молодчинка!!!!"],
-                                ["Хочешь попробовать еще раз?"]],
-                               func=self.choice))
+        self.append(Speech([["Так, ну поскольку это демка..."],
+                            ["Хочешь попробовать еще раз?"]],
+                           func=self.choice, italic=True))
+
+    def gameover(self):
+        self.append(pygame.sprite.Sprite())
+        self.elements[-1].image = load_image("gameover.png", scale=pixel_size)
+        self.elements[-1].rect = pygame.Rect(0, 0, 150 * pixel_size, 100 * pixel_size)
 
     def choice(self):
         btn = load_image("button.png", scale=pixel_size)
@@ -564,7 +688,7 @@ class Reakcia(GameStage):
         )
         self.append(
             Button((width - btn.get_width() * 3) / 2, height / 2, btn,
-                   "Еще раз", (0, 200, 0), self.retry))
+                   "Еще раз", (0, 200, 0), self.completeretry))
         self.append(
             Button((width + btn.get_width()) / 2, height / 2, btn,
                    "В меню", (0, 200, 0), self.to_menu)
@@ -573,9 +697,23 @@ class Reakcia(GameStage):
     def to_menu(self):
         self.transform(MainMenu)
 
-    def retry(self):
-        self.transform(Reakcia, True)
+    def retry(self, score=1):
+        if self.game_started:
+            self.trying += 1
+            if self.trying <= 20:
+                self.elements[101].delta(score, 1)
+                for i in range(100):
+                    self.elements[i].change_color()
+                self.elements[100].restart(0.7)
+                self.elements[random.randrange(100)].change_func(self.retry)
+            else:
+                self.end()
 
+    def completeretry(self):
+        self.transform(Reakcia)
+
+
+gamestages = [[MainMenu, Intro, Reakcia]]
 
 if __name__ == '__main__':
     running = True

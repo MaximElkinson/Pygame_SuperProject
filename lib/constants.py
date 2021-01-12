@@ -1,5 +1,6 @@
 import pygame
 
+
 pygame.init()
 psize = pwidth, pheight = 1200, 800  # Истинный размер экрана, но из-за фуллскрина происходит
 fps = 60
@@ -12,7 +13,4 @@ click = False  # Кликнула ли мышка в данный игровой
 defaultsettings = {  # Изначальные настройки игры. Пока что тут только фуллскрин.
     "first": True,
     "fullscreen": False  # И, наверное, он так и будет один... (ООООО РИФМА ЕЕЕ-)
-}
-defaultsave = {
-    "Reakcia": 0
 }
