@@ -1,4 +1,3 @@
-import pygame
 import os
 import sys
 from lib.constants import *
@@ -8,31 +7,46 @@ def do_nothing():  # Название говорит само за себя, ф�
     pass
 
 
-def set_file(file, path):
+def set_file(file, path):  # Загрузка и сохранение файла (второе - в случае изменения кода)
     if os.path.exists(path):
-        fl = False
         with open(path, "r", encoding="utf8") as f:
-            for i in f.readlines():
-                j = i.rstrip().split("\t")
-                if j[0] in file:
-                    stg = j[1]
-                    if stg in ("True", "False"):
-                        stg = (stg == "True")
-                    elif stg.isdigit():
-                        stg = int(stg)
-                    file[j[0]] = stg
+            if type(file) == dict:
+                for i in f.readlines():
+                    j = i.rstrip().split("\t")
+                    if j[0] in file:
+                        stg = j[1]
+                        if stg in ("True", "False"):
+                            stg = (stg == "True")
+                        elif stg.isdigit():
+                            stg = int(stg)
+                        file[j[0]] = stg
+            else:
+                s = list(f.readlines())
+                for i in range(len(s)):
+                    s[i] = list(map(int, s[i].split("\t")))
+                for i in range(len(s)):
+                    if i < len(file):
+                        for j in range(len(s[i])):
+                            if j < len(file[i]):
+                                file[i][j] = s[i][j]
+                            else:
+                                break
+                    else:
+                        break
     save_file(file, path)
     return file
 
 
-
-def save_file(file, path):
+def save_file(file, path):  # Сохранение файла
     with open(path, "w", encoding="utf8") as f:
-        for i in file.keys():
-            f.write(i + "\t" + str(file[i]) + "\n")
+        if type(file) == dict:
+            for i in file.keys():
+                f.write(i + "\t" + str(file[i]) + "\n")
+        else:
+            f.write("\n".join(["\t".join(list(map(str, i))) for i in file]))
 
 
-def load_image(name, colorkey=None, fillcolor=None, scale=1):  # Функция загрузки изображений из папки data
+def load_image(name, colorkey=None, fillcolor=None, scale=1):  # Загрузка изображений из папки data
     fullname = os.path.join('data', name)
     if not os.path.isfile(fullname):
         print(f"Файл с изображением '{fullname}' не найден")
