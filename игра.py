@@ -1,6 +1,6 @@
 import random
 import sqlite3
-from lib.functions import *
+from functions import *
 from lib.constants import *
 
 # d = datetime.now().strftime("%H:%M:%S %d-%m-%Y")
@@ -46,18 +46,23 @@ class CellGame:
         self.cell_size = cell_size
 
     def render(self):
+        # Отрисовка сетки
         for y in range(self.height):
             for x in range(self.width):
+                # Получение координат верхнего левого угла клетки
                 x1 = x * self.cell_size + self.left
                 y1 = y * self.cell_size + self.top
-                pygame.draw.rect(screen, pygame.Color(255, 255, 255),
+                # Отрисовка клетки
+                pygame.draw.rect(screen, self.colors[self.board[y][x]],
                                  (x1, y1, self.cell_size, self.cell_size), 1)
-
+        # Закрашивание клеток
         for y in range(self.height):
             for x in range(self.width):
+                # Получение координат верхнего левого угла клетки
                 x1 = x * self.cell_size + self.left
                 y1 = y * self.cell_size + self.top
                 l = (self.cell_size - 2) / 2
+                # Закрашивание клетки
                 screen.fill(self.colors[self.board[y][x]],
                             (x1, y1), (x1 + l, y1 + l))
 
@@ -937,6 +942,10 @@ class GameOver(GameStage):
 
 
 gamestages = [[Help, Intro, Reakcia]]
+
+class Clicer(GameStage):
+    pass
+
 
 if __name__ == '__main__':
     running = True
