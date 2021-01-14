@@ -82,6 +82,79 @@ class GameStage:  # Надкласс для стадий игры, чтобы н
         self.args = args  # Аргументы, которые можно подать на следующую стадию
 
 
+class CellGame:  # Основа для клеточных мини-игр
+    # создание поля
+    def __init__(self):
+        # значения по умолчанию
+        # 1) Позиция по х
+        # 2) Позиция по у
+        # 3) Размер стороны клетки
+        self.left = 10
+        self.top = 10
+        self.cell_size = 30
+
+    # настройка внешнего вида
+    def set_view(self, left, top, cell_size):
+        # Новые значения
+        # 1) Позиция по х
+        # 2) Позиция по у
+        # 3) Размер стороны клетки
+        self.left = left
+        self.top = top
+        self.cell_size = cell_size
+
+    def render(self):
+        for y in range(self.height):
+            for x in range(self.width):
+                x1 = x * self.cell_size + self.left
+                y1 = y * self.cell_size + self.top
+                pygame.draw.rect(screen, pygame.Color(255, 255, 255),
+                                 (x1, y1, self.cell_size, self.cell_size), 1)
+
+        for y in range(self.height):
+            for x in range(self.width):
+                x1 = x * self.cell_size + self.left
+                y1 = y * self.cell_size + self.top
+                l = (self.cell_size - 2) / 2
+                screen.fill(self.colors[self.board[y][x]],
+                            (x1, y1), (x1 + l, y1 + l))
+
+    def generate_new_map(self, width, height, colors):
+        # Генерация нового поля
+        # и установка доп. значений:
+        # 1) Кол-во клеток по х
+        # 2) Кол-во клеток по у
+        # 3) Словарь индексов цветов
+        self.width = width
+        self.height = height
+        self.colors = colors
+        # 4) Генерация поля
+        self.board = [[0] * width for _ in range(height)]
+
+    def on_click(self, cell):
+        # ===============ВНИМАНИЕ===============
+        # ДАННАЯ ФУНКЦИЯ ДОЛЖНА ПЕРЕОПРЕДЕЛЯТЬСЯ
+        # ======================================
+        # Данная функция изменяет поля
+        # после нажатия на мышь
+        pass
+
+    def get_cell(self, mouse_pos):
+        # Получение координат клетки
+        x = (mouse_pos[0] - self.left) // self.cell_size
+        y = (mouse_pos[1] - self.top) // self.cell_size
+        # Проверка клетки на нахождения на поле
+        if x < 0 or x >= self.width or y < 0 or y >= self.height:
+            return None
+        return x, y
+
+    def get_click(self, mouse_pos):
+        # Проверка клетки на нахождения на поле
+        cell = self.get_cell(mouse_pos)
+        if cell:
+            self.on_click(cell)
+
+
 class Speech(pygame.sprite.Sprite):  # "Монологовое окно", отсюда приходит текст
     def __init__(self, text, colorlib=None, stay=False, func=do_nothing, cutscene=False,
                  rate=2, chars=None, rates=None, italic=False, italics=None):
