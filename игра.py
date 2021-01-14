@@ -1,18 +1,19 @@
 import random
 from datetime import datetime
 from lib.functions import *
+from lib.constants import *
 
 settings = set_file(defaultsettings, "settings.txt")
-save = defaultsave[:]
-savename = None
+save = defaultsave[:]  # файл сохранения
+savename = None  # имя файла сохранения в папке
 pygame.init()  # Основная инициализация, определеине размеров, создание констант
 pygame.display.set_caption('Игра')
-if settings["fullscreen"]:
+if settings["fullscreen"]:  # Фуллскрин или нет
     screen = pygame.display.set_mode(psize, pygame.FULLSCREEN | pygame.SCALED)
 else:
     screen = pygame.display.set_mode(psize)
-size = width, height = screen.get_size()
-pixel_size = height // 100
+size = width, height = screen.get_size()  # Размер экрана
+pixel_size = height // 100  # Размер пикселей игры
 MAIN_FONT = pygame.font.Font("data/cool pixel font.ttf", pixel_size * 6)  # Основной шрифт
 BIG_FONT = pygame.font.Font("data/cool pixel font.ttf", pixel_size * 8)  # Крупная версия
 
@@ -24,12 +25,13 @@ additional = pygame.sprite.Group()
 
 def exit():  # Удобная функция выхода из игры. Она не с остальными функциями,
     # потому что в ней так же происходит сохранение всех настроек
-    save_file(settings, "settings.txt")
-    if savename is None and any([1 in i for i in save]):
-        save_file(save, datetime.now().strftime("%H-%M-%S %d.%m.%Y") +
-                  str(len(os.listdir(os.getcwd())) - 8) + ".save")
-    elif savename is not None:
-        save_file(save, savename)
+    if any([i == 0 for i in save]):
+        save_file(settings, "settings.txt")
+        if savename is None and any([1 in i for i in save]):
+            save_file(save, datetime.now().strftime("%H-%M-%S %d.%m.%Y") +
+                      str(len(os.listdir(os.getcwd())) - 8) + ".save")
+        elif savename is not None:
+            save_file(save, savename)
     pygame.quit()
     sys.exit()
 
@@ -94,6 +96,14 @@ class Speech(pygame.sprite.Sprite):  # "Монологовое окно", отс
         else:
             self.fulltext = text
         self.text = self.fulltext[0]  # Текущая фраза
+        if italic:  # Некоторые части могут быть курсивом - это типа пролом четвертой стены
+            self.italics = [True for _ in range(len(self.fulltext))]
+        elif italics is not None:  # Список курсивных фраз
+            self.italics = italics
+        else:
+            self.italics = [False for _ in range(len(self.fulltext))]
+        if not cutscene and not self.italics[0]:
+            self.text[0] = '* ' + self.text[0]  # Просто по приколу
         # Картинки персонажей, если есть
         if chars is None:
             self.chars = [None for _ in range(len(self.fulltext))]
@@ -119,8 +129,6 @@ class Speech(pygame.sprite.Sprite):  # "Монологовое окно", отс
             self.rates = [rate for _ in range(len(self.fulltext))]
         else:
             self.rates = rates
-        if not cutscene:
-            self.text[0] = '* ' + self.text[0]  # Просто по приколу
         self.normaltext = "".join(self.text)  # Фраза в виде одной строки
         self.colorlib = colorlib  # Если часть речи нужно выделить другим цветом, есть вотето
         self.maincolor = pygame.Color(0, 200, 0)  # Цвет речи
@@ -136,12 +144,6 @@ class Speech(pygame.sprite.Sprite):  # "Монологовое окно", отс
             self.font = BIG_FONT
         else:
             self.font = MAIN_FONT
-        if italic:  # Некоторые части могут быть курсивом - это типа мысли ИИ
-            self.italics = [True for _ in range(len(self.fulltext))]
-        elif italics is not None:  # Список курсивных фраз
-            self.italics = italics
-        else:
-            self.italics = [False for _ in range(len(self.fulltext))]
 
     def update(self, mpos, click, keyboard):  # Функция для плавного появления текста и переходов
         doskip = keyboard[pygame.K_x]  # Скипать ли текст
@@ -218,7 +220,7 @@ class Speech(pygame.sprite.Sprite):  # "Монологовое окно", отс
             self.text = text.rstrip().split("\n")
         else:
             self.text = text
-        if not self.cutscene:
+        if not self.cutscene and not self.italics[self.phrase]:
             self.text[0] = '* ' + self.text[0]
         self.normaltext = "".join(self.text)
         self.step = 0
@@ -278,7 +280,7 @@ class Tile(pygame.sprite.Sprite):  # Простой прямоугольник, 
 
 class Button(pygame.sprite.Sprite):
     # Класс простой кнопки с картинкой
-    def __init__(self, x, y, sprite, text, tcolor, func, *args):
+    def __init__(self, x, y, sprite, text, tcolor, func, *args, send=False):
         super().__init__(buttons, sprites)
         self.text = text
         self.sprite = sprite
@@ -290,10 +292,14 @@ class Button(pygame.sprite.Sprite):
                          (self.rect.h - MAIN_FONT.get_height()) / 2))
         self.func = func
         self.args = args
+        self.send = send
 
     def update(self, mpos, click, *args):
         # Нажатие кнопки
         if in_rect((self.rect.x, self.rect.y, *self.rect.size), mpos) and click:
+            if self.send:
+                global button_name
+                button_name = self.text
             self.func(*self.args)
 
     def set_text(self, text):  # Передлка текста на кнопке
@@ -331,12 +337,12 @@ class MainMenu(GameStage):  # Главное меню
         self.transform(Saveload, load)
 
 
-def set_choice(text, func, *args):
+def set_choice(text, func, *args):  # Быстрая функция для создания окна с подтверждением
     stage.pause()
     Choice(text, func, *args)
 
 
-class Choice(pygame.sprite.Sprite):
+class Choice(pygame.sprite.Sprite):  # Собсна само окно с подтверждением
     def __init__(self, text, func, *args):
         super().__init__(additional)
         global on_choice
@@ -350,17 +356,19 @@ class Choice(pygame.sprite.Sprite):
         self.image.blit(bltext, (4 * p, 4 * p))
         self.ok = Button(self.rect.x + 4 * p, self.rect.y + 15 * p,
                          load_image("button.png", scale=p), "OK", (0, 200, 0), self.if_ok, *args)
+        self.ok.kill()
         self.ok.add(additional)
         self.cancel = Button(self.rect.x + 57 * p, self.rect.y + 15 * p,
                              load_image("button.png", scale=p), "Отмена", (0, 200, 0), self.kill)
+        self.cancel.kill()
         self.cancel.add(additional)
         self.func = func
 
-    def if_ok(self, *args):
+    def if_ok(self, *args):  # Выполнение функции, если нажата клавиша "ОК"
         self.func(*args)
         self.kill()
 
-    def kill(self):
+    def kill(self):  # Самоуничтожение
         global on_choice, stage
         on_choice = False
         stage.unpause()
@@ -372,14 +380,14 @@ class Choice(pygame.sprite.Sprite):
         del self
 
 
-class Saveload(GameStage):
+class Saveload(GameStage):  # Экран с загрузкой или созданием файла
     def __init__(self, load):
         super().__init__()
         self.loaded = ["пусто0.save"] * 5
         files = os.listdir(os.getcwd())
         for i in range(len(files)):
             if ".save" in files[i]:
-                self.loaded[int(files[i][-6])] = files[i]
+                self.loaded[self.loaded.index("пусто0.save")] = files[i]
         btn = load_image("menubutton.png", scale=pixel_size)
         btnw = btn.get_width()
         btnh = btn.get_height()
@@ -387,37 +395,42 @@ class Saveload(GameStage):
             self.append(Button((width - btnw) // 2,
                                (height - btnh * 5) // 2 + i * btnh,
                                btn, self.loaded[i][:-6], (0, 200, 0),
-                               self.play, self.loaded[i], load))
+                               self.play, self.loaded[i], load, send=True))
         self.append(Button((width - btnw) // 2,
                            (height - btnh * 5) // 2 + 5 * btnh,
                            btn, "Назад", (0, 200, 0),
                            self.back))
 
-    def back(self):
+    def back(self):  # Выход в меню
         self.transform(MainMenu)
 
-    def play(self, filename, load):
-        if load and filename == "пусто0.save":
+    def play(self, filename, load):  # Сохранение или загрузка сохранения
+        if load and filename == "пусто0.save":  # Загрузка пустого файла. Ты дурак штоле?
             return
-        elif load:
+        elif load:  # Подтверждение просто на случай мисклика
             set_choice("Вы уверены?", self.load, filename)
-        elif not load and filename == "пусто0.save":
+        elif filename == "пусто0.save":  # Создание нового файла
             global savename
-            savename = datetime.now().strftime("%H.%M.%S %d-%m-%Y") + \
+            savename = datetime.now().strftime("%H-%M-%S %d.%m.%Y") + \
                        str(len(os.listdir(os.getcwd())) - 8) + ".save"
             self.startgame()
-        else:
+        else:  # Перезапись существующего
             set_choice("Вы точно хотите перезаписать сохранение?", self.startgame,
-                       datetime.now().strftime("%H.%M.%S %d-%m-%Y") +
-                       str(len(os.listdir(os.getcwd())) - 8) + ".save")
+                       datetime.now().strftime("%H-%M-%S %d.%m.%Y") +
+                       str(len(os.listdir(os.getcwd())) - 8) + ".save", True)
 
-    def load(self, file):
+    def load(self, file):  # Впомогательный класс, записывающий имя файла в переменную
         global save, savename
         save = set_file(save, file)
         savename = file
         self.startgame()
 
-    def startgame(self, name=None):
+    def startgame(self, name=None, rewrite=False):  # Загрузка самой игры на нужной стадии
+        if rewrite:  # Удаление перезаписываемого файла
+            for i in self.loaded:
+                if button_name in i:
+                    os.remove(i)
+                    break
         if name is not None:
             global savename
             savename = name
@@ -447,7 +460,7 @@ class MainSettings(GameStage):  # Настройки в главном меню.
                            (height + btn.get_height() * 3) // 2, btn.copy(),
                            "Готово", (0, 200, 0), self.savenback))
 
-    def tgl_fullscreen(self):
+    def tgl_fullscreen(self):  # Включение полноэкранного режима
         global size, width, height, pixel_size
         settings["fullscreen"] = not settings["fullscreen"]
         if settings["fullscreen"]:
@@ -463,29 +476,29 @@ class MainSettings(GameStage):  # Настройки в главном меню.
         save_file(settings, "settings.txt")
         self.transform(MainSettings)
 
-    def savenback(self):
+    def savenback(self):  # Сохранение настроек и уход в главное меню
         save_file(settings, "settings.txt")
         self.transform(MainMenu)
 
 
-class Help(GameStage):
+class Help(GameStage):  # Класс с управлением
     def __init__(self):
         super().__init__()
         self.append(
             Tile(screen.get_rect(), (0, 0, 0, 0), [
                 "z или enter: выполнить/подтвердить",
                 "x: пропустить/отменить"
-            ], func=self.play, suicide=True)
+            ], func=self.intro, suicide=True)
         )
 
-    def play(self):
+    def intro(self):  # Переход к интро
         global save, savename
         save[0][0] = 0
         save_file(save, savename)
         self.transform(Intro)
 
 
-class Intro(GameStage):
+class Intro(GameStage):  # Введение в игру
     def __init__(self):
         super().__init__()
         self.funytimer = 3
@@ -506,13 +519,13 @@ class Intro(GameStage):
     def to_main_menu(self):
         self.transform(MainMenu)
 
-    def demo(self):
+    def game(self):  # Переход к первой мини-игре
         global save, savename
         save[0][1] = 0
         save_file(save, savename)
         self.transform(Reakcia)
 
-    def update(self, *args):
+    def update(self, *args):  # Появление кнопки
         if self.elements[0].is_complete() and self.wasnt:
             self.funytimer -= 1
         if self.funytimer == 0:
@@ -520,10 +533,10 @@ class Intro(GameStage):
             self.wasnt = False
             self.append(Button((width - btn.get_width()) // 2,
                                (height - btn.get_height()) // 2,
-                               btn, "нажми", (0, 200, 0), self.demo))
+                               btn, "нажми", (0, 200, 0), self.game))
 
 
-class ReakTile(pygame.sprite.Sprite):
+class ReakTile(pygame.sprite.Sprite):  # Плитка для игры
     def __init__(self, xy, func):
         super().__init__(sprites)
         self.image = pygame.Surface((pixel_size * 7, pixel_size * 7))
@@ -542,15 +555,15 @@ class ReakTile(pygame.sprite.Sprite):
         if in_rect((self.rect.x, self.rect.y, *self.rect.size), mpos) and click:
             self.func()
 
-    def change_func(self, func2):
+    def change_func(self, func2):  # Становление плитки красной
         self.func = func2
         self.change_color(pygame.Color(255, 0, 0))
         self.red = True
 
-    def is_red(self):
+    def is_red(self):  # Нужно ли на неее нажать
         return self.red
 
-    def change_color(self, color=None):
+    def change_color(self, color=None):  # Изменение цвета
         if color is None:
             color = pygame.Color(random.randint(0, 120),
                                  random.randint(150, 255),
@@ -563,13 +576,13 @@ class ReakTile(pygame.sprite.Sprite):
         self.image.fill(color, pygame.Rect(pixel_size, pixel_size, 5 * pixel_size, 5 * pixel_size))
         self.red = False
 
-    def blacknwhite(self):
+    def blacknwhite(self):  # Черно-белый режим
         color = self.image.get_at((0, 0))
         color.hsva = [color.hsva[0], 0, color.hsva[2], color.hsva[3]]
         self.change_color(color)
 
 
-class Timer(pygame.sprite.Sprite):
+class Timer(pygame.sprite.Sprite):  # Таймер
     def __init__(self, x, y, seconds, color=(0, 200, 0), func=do_nothing(),
                  stay=False, text=True):
         super().__init__()
@@ -589,7 +602,7 @@ class Timer(pygame.sprite.Sprite):
         self.image.blit(bltext, (p * 2, p * 2))
         self.rect = pygame.Rect(x, y, *self.image.get_size())
 
-    def update(self, *args):
+    def update(self, *args):  # Обновление таймера
         if self.go:
             time = self.clock.tick()
             self.timer -= time / 1000
@@ -607,23 +620,23 @@ class Timer(pygame.sprite.Sprite):
         self.image.fill((0, 0, 0), pygame.Rect(p * 26, p * 2, 14 * p, 4 * p))
         self.image.blit(bltext, (p * 2, p * 1))
 
-    def start(self):
+    def start(self):  # Начало отсчета
         self.go = True
         self.clock.tick()
 
-    def stop(self):
+    def stop(self):  # Остановка таймера
         self.go = False
 
-    def restart(self, seconds):
+    def restart(self, seconds):  # Перезапуск таймера
         self.timer: float = seconds
         self.clock = pygame.time.Clock()
         self.start()
 
-    def timeleft(self):
+    def timeleft(self):  # Сколько осталось времени
         return self.timer
 
 
-class Counter(pygame.sprite.Sprite):
+class Counter(pygame.sprite.Sprite):  # Счетчик для реакции
     def __init__(self, x, y, color=(0, 200, 0)):
         super().__init__()
         self.counter = 0
@@ -650,15 +663,15 @@ class Counter(pygame.sprite.Sprite):
         self.image.fill((0, 0, 0), pygame.Rect(p * 26, p * 2, 14 * p, 4 * p))
         self.image.blit(bltext, (p * 2, p * 1))
 
-    def delta(self, sc, m):
+    def delta(self, sc, m):  # Изменение очков
         self.counter += sc
         self.maxx += m
 
-    def percentage(self):
+    def percentage(self):  # Сколько очков из максимума
         return (self.counter / self.maxx) * 100
 
 
-class Reakcia(GameStage):
+class Reakcia(GameStage):  # Первая мини-игра
     def __init__(self, not_first=False):
         super().__init__()
         for i in range(10):
@@ -667,27 +680,33 @@ class Reakcia(GameStage):
                                       j * 8 * pixel_size,
                                       (height - pixel_size * 80) // 2 +
                                       i * 8 * pixel_size), self.error))
-        self.append(Timer(0, 0, 0.7, stay=True, func=self.error))
+        self.append(Timer(0, 0, 0.6, stay=True, func=self.error))
         self.append(Counter(pixel_size * 50, 0))
         self.updatetiles = 0
         self.trying = 0
         self.game_started = False
         self.stop = True
         self.overtimer = -1
-        if not not_first and save[0][2] != 2:
+        if not not_first and save[0][2] != 2:  # Интро
             self.append(
-                Speech([["Здарова кампудахтор!",
-                         "Сейчас ты буишь проходить тест на реакцию!",
-                         "Тебе нужно как можно быстрее находить",
-                         "и тыкать на красный квадрат."],
+                Speech([["Первый тест - проверка на твою скорсть",
+                         "обработки информации или, грубо говоря,",
+                         "тест на реакцию."],
+                        ["Тебе нужно как можно быстрее находить",
+                         "красный квадрат среди ста других.",
+                         "Для того, чтобы указать на квадрат,",
+                         "тебе выдается специальный курсор."],
+                        ["(В этой мини-игре используется",
+                         "управление мышкой)"],
                         ["Всего дается 20 попыток.",
                          "Поторопись, на каждую попытку",
-                         "у тебя есть лишь доля миллисекунды!"],
-                        ["Ну все, начинай!"]], func=self.start))
+                         "у тебя есть лишь доля миллисекунды."],
+                        ["Итак, тест начинается!"]], func=self.start,
+                       italics=[False, False, True, False, False]))
         else:
             self.start()
 
-    def start(self):
+    def start(self):  # Начало мини-игры
         global save
         save[0][2] = 2
         self.elements[100].start()
@@ -713,7 +732,6 @@ class Reakcia(GameStage):
             for i in range(100):
                 self.elements[i].blacknwhite()
             p = self.elements[101].percentage()
-            print(p)
             loose = False
             if p == 100:
                 text = [["Ого! Постирон- эээ, потрясающий результат!",
@@ -792,9 +810,9 @@ class Reakcia(GameStage):
                            func=self.choice, italic=True))
 
     def gameover(self):
-        self.append(pygame.sprite.Sprite())
-        self.elements[-1].image = load_image("gameover.png", scale=pixel_size)
-        self.elements[-1].rect = pygame.Rect(0, 0, 150 * pixel_size, 100 * pixel_size)
+        global save
+        save[0][2] = 3
+        self.transform(GameOver)
 
     def choice(self):
         btn = load_image("button.png", scale=pixel_size)
@@ -821,13 +839,27 @@ class Reakcia(GameStage):
                 self.elements[101].delta(score, 1)
                 for i in range(100):
                     self.elements[i].change_color()
-                self.elements[100].restart(0.7)
+                self.elements[100].restart(0.6)
                 self.elements[random.randrange(100)].change_func(self.retry)
             else:
                 self.end()
 
     def completeretry(self):
         self.transform(Reakcia)
+
+
+class GameOver(GameStage):
+    def __init__(self):
+        super().__init__()
+        self.append(pygame.sprite.Sprite())
+        self.elements[-1].image = load_image("gameover.png", scale=pixel_size)
+        self.elements[-1].rect = pygame.Rect(0, 0, 150 * pixel_size, 100 * pixel_size)
+        btn = load_image("button.png", scale=pixel_size)
+        self.append(Button((width - btn.get_width()) // 2, height - pixel_size * 30, btn,
+                           "В меню", (0, 200, 0), self.to_menu))
+
+    def to_menu(self):
+        self.transform(MainMenu)
 
 
 gamestages = [[Help, Intro, Reakcia]]
@@ -838,7 +870,7 @@ if __name__ == '__main__':
     mouse_pos = (0, 0)
     clock = pygame.time.Clock()
     stage = MainMenu()
-    while running:
+    while running:  # Основной цикл
         mouseprev = mouse
         mouse_on_screen = pygame.mouse.get_focused()
         for event in pygame.event.get():
@@ -865,8 +897,10 @@ if __name__ == '__main__':
         if nextstage is not None:
             stage = nextstage(*stage.args)
         stage.do_things(mouse_pos, click, pygame.key.get_pressed())
+        # Обновление спрайтов, которым пофиг на паузу
         additional.update(mouse_pos, click, pygame.key.get_pressed())
         additional.draw(screen)
+        # Вывод на экран и подгонка fps
         pygame.display.flip()
         clock.tick(fps)
-    pygame.quit()
+    exit()
