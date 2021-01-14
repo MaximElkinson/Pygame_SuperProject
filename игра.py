@@ -1,7 +1,7 @@
 import random
 import sqlite3
-from lib.functions import *
-from lib.constants import *
+from functions import *
+from constants import *
 
 # d = datetime.now().strftime("%H:%M:%S %d-%m-%Y")
 
@@ -398,13 +398,16 @@ class MainMenu(GameStage):  # Главное меню
     def generate_menu(self):
         btn = load_image("menubutton.png", scale=pixel_size)
         self.append(Button((width - btn.get_width()) // 2,
-                           (height - btn.get_height() * 3) // 2, btn.copy(),
-                           "Попробовать демо", (0, 200, 0), self.play),
+                           (height - btn.get_height() * 5) // 2, btn.copy(),
+                           "Попробовать демо", (0, 200, 0), self.saveload),
                     Button((width - btn.get_width()) // 2,
-                           (height - btn.get_height() * 0) // 2, btn.copy(),
+                           (height - btn.get_height() * 3) // 2, btn.copy(),
+                           "Загрузить демо", (0, 200, 0), self.saveload, True),
+                    Button((width - btn.get_width()) // 2,
+                           (height - btn.get_height() * 1) // 2, btn.copy(),
                            "Настройки", (0, 200, 0), self.settings),
                     Button((width - btn.get_width()) // 2,
-                           (height + btn.get_height() * 3) // 2, btn.copy(),
+                           (height + btn.get_height() * 1) // 2, btn.copy(),
                            "Выход", (0, 200, 0), exit))
 
     def settings(self):

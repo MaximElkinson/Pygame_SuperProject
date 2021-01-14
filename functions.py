@@ -12,6 +12,45 @@ def do_nothing():  # Название говорит само за себя, ф�
     pass
 
 
+def set_file(file, path):  # Загрузка и сохранение файла (второе - в случае изменения кода)
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf8") as f:
+            if type(file) == dict:
+                for i in f.readlines():
+                    j = i.rstrip().split("\t")
+                    if j[0] in file:
+                        stg = j[1]
+                        if stg in ("True", "False"):
+                            stg = (stg == "True")
+                        elif stg.isdigit():
+                            stg = int(stg)
+                        file[j[0]] = stg
+            else:
+                s = list(f.readlines())
+                for i in range(len(s)):
+                    s[i] = list(map(int, s[i].split("\t")))
+                for i in range(len(s)):
+                    if i < len(file):
+                        for j in range(len(s[i])):
+                            if j < len(file[i]):
+                                file[i][j] = s[i][j]
+                            else:
+                                break
+                    else:
+                        break
+    save_file(file, path)
+    return file
+
+
+def save_file(file, path):  # Сохранение файла
+    with open(path, "w", encoding="utf8") as f:
+        if type(file) == dict:
+            for i in file.keys():
+                f.write(i + "\t" + str(file[i]) + "\n")
+        else:
+            f.write("\n".join(["\t".join(list(map(str, i))) for i in file]))
+
+
 def set_settings(settings):  # Функция для загрузки или создания файла с настройками
     if os.path.exists("settings.txt"):
         with open("settings.txt", "r", encoding="utf8") as f:
