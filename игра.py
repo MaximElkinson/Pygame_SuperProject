@@ -1,7 +1,9 @@
 import random
-from datetime import datetime
+import sqlite3
 from lib.functions import *
 from lib.constants import *
+
+# d = datetime.now().strftime("%H:%M:%S %d-%m-%Y")
 
 settings = set_file(defaultsettings, "settings.txt")
 save = defaultsave[:]  # файл сохранения
@@ -20,9 +22,79 @@ BIG_FONT = pygame.font.Font("data/cool pixel font.ttf", pixel_size * 8)  # Кр�
 # Инициализация основных групп спрайтов
 buttons = pygame.sprite.Group()
 sprites = pygame.sprite.Group()
-additional = pygame.sprite.Group()
 
 
+class CellGame:
+    # создание поля
+    def __init__(self):
+        # значения по умолчанию
+        # 1) Позиция по х
+        # 2) Позиция по у
+        # 3) Размер стороны клетки
+        self.left = 10
+        self.top = 10
+        self.cell_size = 30
+
+    # настройка внешнего вида
+    def set_view(self, left, top, cell_size):
+        # Новые значения
+        # 1) Позиция по х
+        # 2) Позиция по у
+        # 3) Размер стороны клетки
+        self.left = left
+        self.top = top
+        self.cell_size = cell_size
+
+    def render(self):
+        for y in range(self.height):
+            for x in range(self.width):
+                x1 = x * self.cell_size + self.left
+                y1 = y * self.cell_size + self.top
+                pygame.draw.rect(screen, pygame.Color(255, 255, 255),
+                                 (x1, y1, self.cell_size, self.cell_size), 1)
+
+        for y in range(self.height):
+            for x in range(self.width):
+                x1 = x * self.cell_size + self.left
+                y1 = y * self.cell_size + self.top
+                l = (self.cell_size - 2) / 2
+                screen.fill(self.colors[self.board[y][x]],
+                            (x1, y1), (x1 + l, y1 + l))
+
+    def generate_new_map(self, width, height, colors):
+        # Генерация нового поля
+        # и установка доп. значений:
+        # 1) Кол-во клеток по х
+        # 2) Кол-во клеток по у
+        # 3) Словарь индексов цветов
+        self.width = width
+        self.height = height
+        self.colors = colors
+        # 4) Генерация поля
+        self.board = [[0] * width for _ in range(height)]
+
+    def on_click(self, cell):
+        # ===============ВНИМАНИЕ===============
+        # ДАННАЯ ФУНКЦИЯ ДОЛЖНА ПЕРЕОПРЕДЕЛЯТЬСЯ
+        # ======================================
+        # Данная функция изменяет поля
+        # после нажатия на мышь
+        pass
+
+    def get_cell(self, mouse_pos):
+        # Получение координат клетки
+        x = (mouse_pos[0] - self.left) // self.cell_size
+        y = (mouse_pos[1] - self.top) // self.cell_size
+        # Проверка клетки на нахождения на поле
+        if x < 0 or x >= self.width or y < 0 or y >= self.height:
+            return None
+        return x, y
+
+    def get_click(self, mouse_pos):
+        # Проверка клетки на нахождения на поле
+        cell = self.get_cell(mouse_pos)
+        if cell:
+            self.on_click(cell)
 def exit():  # Удобная функция выхода из игры. Она не с остальными функциями,
     # потому что в ней так же происходит сохранение всех настроек
     if any([i == 0 for i in save]):
@@ -146,8 +218,7 @@ class Speech(pygame.sprite.Sprite):  # "Монологовое окно", отс
             self.font = MAIN_FONT
 
     def update(self, mpos, click, keyboard):  # Функция для плавного появления текста и переходов
-        doskip = keyboard[pygame.K_x]  # Скипать ли текст
-        donext = keyboard[pygame.K_z] or keyboard[pygame.K_RETURN]  # Врубать ли следующую фразу
+        doskip = click or keyboard[pygame.K_z] or keyboard[pygame.K_RETURN]  # Скипать ли текст
         # Изменение цвета в случае, если в colorlib записан другой
         if (self.phrase, self.step // self.rates[self.phrase]) not in self.colorlib:
             color = self.maincolor
@@ -156,7 +227,7 @@ class Speech(pygame.sprite.Sprite):  # "Монологовое окно", отс
         # "Проматывание" текущего текста до конца, если лень смотреть анимацию
         if doskip and self.step < (len(self.normaltext)) * self.rates[self.phrase]:
             if self.italics[self.phrase]:
-                self.font.set_italic(True)
+                self.font.set_italic(1)
             self.step = (len(self.normaltext) - 1) * self.rates[self.phrase]
             bltext = [self.font.render(i, False, color) for i in self.text]
             for i in range(len(bltext)):  # Цикл, потому что несколько строк
@@ -167,9 +238,8 @@ class Speech(pygame.sprite.Sprite):  # "Монологовое окно", отс
                 self.image.blit(bltext[i], (
                     x, pixel_size * (5 + 20 * self.cutscene) + self.font.get_height() * i))
             if self.italics[self.phrase]:
-                self.font.set_italic(False)
-        elif donext and self.step >= (len(self.normaltext)) * self.rates[self.phrase]:
-            # Если текст уже доанимировался, нажатие запускает следующую фразу
+                self.font.set_italic(0)
+        elif doskip:  # Если текст уже доанимировался, нажатие запускает следующую фразу
             self.next_phrase()
         elif self.step < (len(self.normaltext)) * self.rates[self.phrase]:
             if self.step % self.rates[self.phrase] == 0:
@@ -187,7 +257,7 @@ class Speech(pygame.sprite.Sprite):  # "Монологовое окно", отс
                 pizza = False  # Делать ли курсив. Типа Italic, Италия, пицца хыха
                 if self.italics[self.phrase]:
                     pizza = True
-                    self.font.set_italic(True)
+                    self.font.set_italic(1)
                 if pizza:  # Рендер курсива
                     bltext = self.font.render(
                         self.text[numline][:j + 1], False, color)
@@ -204,7 +274,7 @@ class Speech(pygame.sprite.Sprite):  # "Монологовое окно", отс
                                          pixel_size * (5 + 20 * self.cutscene) +
                                          self.font.get_height() * numline))
             if self.italics[self.phrase]:
-                self.font.set_italic(False)
+                self.font.set_italic(0)
             self.step += 1  # +1 шаг
 
     def set_text(self, text):  # Функция для переделки текста
@@ -268,11 +338,11 @@ class Tile(pygame.sprite.Sprite):  # Простой прямоугольник, 
             self.tcolor = tcolor
         for i in range(len(self.text)):
             bltext = MAIN_FONT.render(self.text[i], False, self.tcolor)
-            self.image.blit(bltext, ((width - bltext.get_width()) // 2, height / 3 +
-                                     self.rect.height / 3 / len(self.text) * i))
+            self.image.blit(bltext, (pixel_size, pixel_size +
+                                     (self.rect.height - pixel_size * 2) / len(self.text) * i))
 
-    def update(self, mpos, click, keyboard):
-        if keyboard[pygame.K_z] or keyboard[pygame.K_RETURN]:
+    def update(self, mpos, click, *args):
+        if in_rect(self.rect, mpos) and click:
             self.func()
             if self.suicide:
                 self.kill()
@@ -313,21 +383,28 @@ class Button(pygame.sprite.Sprite):
 class MainMenu(GameStage):  # Главное меню
     def __init__(self):
         super().__init__()
-        self.generate_menu()
+        if settings["first"]:
+            self.append(
+                Tile(screen.get_rect(), (0, 0, 0, 0), [
+                    "z или enter: выполнить/подтвердить",
+                    "x или shift: пропустить/отменить",
+                    "c или control: открытие меню"
+                ], func=self.generate_menu, suicide=True)
+            )
+            settings["first"] = False
+        else:
+            self.generate_menu()
 
     def generate_menu(self):
         btn = load_image("menubutton.png", scale=pixel_size)
         self.append(Button((width - btn.get_width()) // 2,
-                           (height - btn.get_height() * 5) // 2, btn.copy(),
-                           "Попробовать демо", (0, 200, 0), self.saveload),
-                    Button((width - btn.get_width()) // 2,
                            (height - btn.get_height() * 3) // 2, btn.copy(),
-                           "Загрузить демо", (0, 200, 0), self.saveload, True),
+                           "Попробовать демо", (0, 200, 0), self.play),
                     Button((width - btn.get_width()) // 2,
-                           (height - btn.get_height() * 1) // 2, btn.copy(),
+                           (height - btn.get_height() * 0) // 2, btn.copy(),
                            "Настройки", (0, 200, 0), self.settings),
                     Button((width - btn.get_width()) // 2,
-                           (height + btn.get_height() * 1) // 2, btn.copy(),
+                           (height + btn.get_height() * 3) // 2, btn.copy(),
                            "Выход", (0, 200, 0), exit))
 
     def settings(self):
@@ -501,7 +578,7 @@ class Help(GameStage):  # Класс с управлением
 class Intro(GameStage):  # Введение в игру
     def __init__(self):
         super().__init__()
-        self.funytimer = 3
+        self.funytimer = 40
         self.wasnt = True
         self.append(
             Speech([["Дисклеймер:",
@@ -557,7 +634,7 @@ class ReakTile(pygame.sprite.Sprite):  # Плитка для игры
 
     def change_func(self, func2):  # Становление плитки красной
         self.func = func2
-        self.change_color(pygame.Color(255, 0, 0))
+        self.change_color((255, 0, 0))
         self.red = True
 
     def is_red(self):  # Нужно ли на неее нажать
@@ -804,7 +881,6 @@ class Reakcia(GameStage):  # Первая мини-игра
                 self.append(Speech(phrase, func=self.gameover))
 
     def win(self):
-        save[0][2] = 0
         self.append(Speech([["Так, ну поскольку это демка..."],
                             ["Хочешь попробовать еще раз?"]],
                            func=self.choice, italic=True))
@@ -828,8 +904,6 @@ class Reakcia(GameStage):  # Первая мини-игра
         )
 
     def to_menu(self):
-        global save, savename
-        save_file(save, savename)
         self.transform(MainMenu)
 
     def retry(self, score=1):
@@ -889,8 +963,7 @@ if __name__ == '__main__':
             click = True
         else:
             click = False
-        if not on_choice:
-            sprites.update(mouse_pos, click, pygame.key.get_pressed())
+        sprites.update(mouse_pos, click, pygame.key.get_pressed())
         screen.fill((0, 0, 0))
         sprites.draw(screen)
         nextstage = stage.nextstage
