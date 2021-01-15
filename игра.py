@@ -930,7 +930,12 @@ class Adaptation(GameStage):  # Первая мини-игра
         self.stop = True
         self.images = [False,
                        False,
-                       False]
+                       False,
+                       False,
+                       True,
+                       True,
+                       True,
+                       True]
         self.indexes = [i for i in range(len(self.images))]
         self.points = 0
         self.r = 0
@@ -938,8 +943,9 @@ class Adaptation(GameStage):  # Первая мини-игра
         self.overtimer = -1
         if not not_first and save[0][2] != 2:  # Интро
             self.append(
-                Speech([["Приветствую"
-                         "Сейчас ты привыкнешь"]], func=self.start,
+                Speech([["Приветствую",
+                         "Мы проверим твою способность",
+                         "анализировать информацию"]], func=self.start,
                        italics=[False, False, True, False, False]))
         else:
             self.start()
@@ -962,30 +968,21 @@ class Adaptation(GameStage):  # Первая мини-игра
         self.updatetiles += 1
 
     def get_image(self):
-        self.r += 1
-        if self.r != len(self.images) + 1:
-            self.index = self.indexes.pop(random.randrange(len(self.indexes)))
+        if len(self.indexes) != 0:
+            if len(self.indexes) != len(self.images):
+                self.elements[-1].kill()
+            self.index = random.choice(self.indexes)
+            del self.indexes[self.indexes.index(self.index)]
+            image = load_image(f'{self.index}.jpg')
+            image = pygame.transform.scale(image, (400, 400))
+            self.im = pygame.sprite.Sprite()
+            self.im.image = image
+            self.im.rect = self.im.image.get_rect()
+            self.im.rect.x = (width - image.get_width()) // 2
+            self.im.rect.y = 80
+            self.append(self.im)
         else:
             self.end()
-        if self.r == 1:
-            image = load_image(f'{self.index + 1}.jpg')
-            image = pygame.transform.scale(image, (400, 400))
-            self.im = pygame.sprite.Sprite()
-            self.im.image = image
-            self.im.rect = self.im.image.get_rect()
-            self.im.rect.x = (width - image.get_width()) // 2
-            self.im.rect.y = 80
-            self.append(self.im)
-        else:
-            self.elements[-1].kill()
-            image = load_image(f'{self.index + 1}.jpg')
-            image = pygame.transform.scale(image, (400, 400))
-            self.im = pygame.sprite.Sprite()
-            self.im.image = image
-            self.im.rect = self.im.image.get_rect()
-            self.im.rect.x = (width - image.get_width()) // 2
-            self.im.rect.y = 80
-            self.append(self.im)
 
     def true(self):
         if self.cheak(True):
@@ -1008,15 +1005,16 @@ class Adaptation(GameStage):  # Первая мини-игра
         if self.points >= 50:
             text = [['Превосходно'],
                     ['Ты справился']]
+            func = self.win
         else:
             text = [['Что же'],
                     ['могла бы быть и лучше']]
+            func = self.gameover
         phrase = [["Тест завершен, время смотреть результаты.",
                    "Тааак, что тут у нас?"],
                   ["..."],
                   *text]
-        self.append(Speech(phrase, func=self.gameover))
-        self.win()
+        self.append(Speech(phrase, func=func))
 
     def win(self):
         save[0][2] = 0
