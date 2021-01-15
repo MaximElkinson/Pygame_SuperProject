@@ -1,2 +1,2 @@
 first	False
-fullscreen	False
+fullscreen	True
