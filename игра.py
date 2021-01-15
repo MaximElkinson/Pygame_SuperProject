@@ -1,7 +1,7 @@
 import random
 from datetime import datetime
-from functions import *
-from constants import *
+from lib.functions import *
+from lib.constants import *
 
 settings = set_file(defaultsettings, "settings.txt")
 save = defaultsave[:]  # файл сохранения
@@ -762,15 +762,11 @@ class Reakcia(GameStage):  # Первая мини-игра
         self.overtimer = -1
         if not not_first and save[0][2] != 2:  # Интро
             self.append(
-                Speech([["Первый тест - проверка на твою скорсть",
+                Speech([["Второй тест - проверка на твою скорсть",
                          "обработки информации или, грубо говоря,",
                          "тест на реакцию."],
                         ["Тебе нужно как можно быстрее находить",
-                         "красный квадрат среди ста других.",
-                         "Для того, чтобы указать на квадрат,",
-                         "тебе выдается специальный курсор."],
-                        ["(В этой мини-игре используется",
-                         "управление мышкой)"],
+                         "красный квадрат среди ста других."],
                         ["Всего дается 20 попыток.",
                          "Поторопись, на каждую попытку",
                          "у тебя есть лишь доля миллисекунды."],
