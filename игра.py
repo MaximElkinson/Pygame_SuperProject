@@ -577,15 +577,15 @@ class Intro(GameStage):  # Введение в игру
         self.funytimer = 3
         self.wasnt = True
         self.append(
-            Speech([["Дисклеймер:",
-                     "Текст еще не сделан, поэтому тут он",
-                     "просто для заполнения пустоты."],
-                    ["Так вот."],
-                    ["Это типа вступление.",
-                     "Ты компьютер, для тебя время",
-                     "идет на порядки медленнее,",
-                     "бла-бла-бла..."],
-                    ["В общем, ща буит демка:"]],
+            Speech([["Привет.",
+                     "Напоминаю тебе, что ты компьютер."],
+                    ["Если помнишь, то я доктор Роберт."],
+                    ["И так, к делу!",
+                     "Ты пройдёшь серию ",
+                     "адаптационных тестов.",
+                     "Их проведут Морган и Генри.",
+                     "Надеюсь ты их помнишь."],
+                    ["Удачи."]],
                    cutscene=True, rate=3, stay=True)
         )
 
@@ -762,7 +762,7 @@ class Reakcia(GameStage):  # Первая мини-игра
         self.overtimer = -1
         if not not_first and save[0][2] != 2:  # Интро
             self.append(
-                Speech([["Первый тест - проверка на твою скорсть",
+                Speech([["Следующий тест - проверка на твою скорсть",
                          "обработки информации или, грубо говоря,",
                          "тест на реакцию."],
                         ["Тебе нужно как можно быстрее находить",
@@ -943,16 +943,17 @@ class Adaptation(GameStage):  # Первая мини-игра
         self.overtimer = -1
         if not not_first and save[0][2] != 2:  # Интро
             self.append(
-                Speech([["Приветствую",
-                         "Мы проверим твою способность",
-                         "анализировать информацию"]], func=self.start,
+                Speech([["Приветствую."
+                         "В этом тесте",
+                         "мы проверим твою способность",
+                         "анализировать информацию."]], func=self.start,
                        italics=[False, False, True, False, False]))
         else:
             self.start()
 
     def start(self):  # Начало мини-игры
         global save
-        save[0][2] = 2
+        save[0][2] = 3
         btn = load_image("menubutton.png", scale=pixel_size)
         self.append(
             Button((width - btn.get_width()) // 2, 520, btn,
@@ -1003,42 +1004,29 @@ class Adaptation(GameStage):  # Первая мини-игра
         if not self.stop:
             self.stop = True
         if self.points >= 50:
-            text = [['Превосходно'],
-                    ['Ты справился']]
+            text = [['Превосходно.'],
+                    ['Ты справился!']]
             func = self.win
         else:
             text = [['Что же'],
-                    ['могла бы быть и лучше']]
+                    ['могло бы быть и лучше.']]
             func = self.gameover
-        phrase = [["Тест завершен, время смотреть результаты.",
-                   "Тааак, что тут у нас?"],
+        phrase = [["Тест завершен."],
                   ["..."],
                   *text]
         self.append(Speech(phrase, func=func))
 
     def win(self):
         save[0][2] = 0
-        self.append(Speech([["Так, ну поскольку это демка..."],
-                            ["Хочешь попробовать еще раз?"]],
-                           func=self.choice, italic=True))
+        self.choice()
 
     def gameover(self):
         global save
-        save[0][2] = 3
+        save[0][2] = 4
         self.transform(GameOver)
 
     def choice(self):
-        btn = load_image("button.png", scale=pixel_size)
-        self.append(
-            Tile((width / 5, 0, width * 3 / 5, height), pygame.Color(100, 150, 100, 150))
-        )
-        self.append(
-            Button((width - btn.get_width() * 3) / 2, height / 2, btn,
-                   "Еще раз", (0, 200, 0), self.completeretry))
-        self.append(
-            Button((width + btn.get_width()) / 2, height / 2, btn,
-                   "В меню", (0, 200, 0), self.to_menu)
-        )
+        self.transform(Reakcia)
 
     def to_menu(self):
         global save, savename
@@ -1067,7 +1055,7 @@ class GameOver(GameStage):
         self.transform(MainMenu)
 
 
-gamestages = [[Help, Intro, Adaptation, Reakcia]]
+gamestages = [[Help, Intro, Reakcia, Adaptation]]
 
 if __name__ == '__main__':
     running = True
